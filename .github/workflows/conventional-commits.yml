@@ -15,17 +15,5 @@ jobs:
       with:
         fetch-depth: 0
         
-    - name: Install Cocogitto
-      run: |
-        # Install jq for JSON parsing
-        sudo apt-get update && sudo apt-get install -y jq
-        # Install Cocogitto binary using direct release URL
-        COCOGITTO_VERSION=$(curl -s https://api.github.com/repos/cocogitto/cocogitto/releases/latest | jq -r '.tag_name')
-        curl -sSL "https://github.com/cocogitto/cocogitto/releases/download/${COCOGITTO_VERSION}/cocogitto-${COCOGITTO_VERSION}-x86_64-unknown-linux-musl.tar.gz" | tar -xz
-        sudo mv x86_64-unknown-linux-musl/cog /usr/local/bin/cocogitto
-        chmod +x /usr/local/bin/cocogitto
-        cocogitto --version
-        
     - name: Validate commit messages
-      run: |
-        cocogitto check
+      uses: cocogitto/cocogitto-action@v3

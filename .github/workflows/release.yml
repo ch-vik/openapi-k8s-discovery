@@ -55,35 +55,13 @@ jobs:
           echo "Operator image: ghcr.io/${{ github.repository }}-operator:${{ steps.version.outputs.VERSION }}"
           echo "Server image: ghcr.io/${{ github.repository }}-server:${{ steps.version.outputs.VERSION }}"
 
-      - name: Install Cocogitto
-        run: |
-          # Install jq for JSON parsing
-          sudo apt-get update && sudo apt-get install -y jq
-          # Install Cocogitto binary using direct release URL
-          COCOGITTO_VERSION=$(curl -s https://api.github.com/repos/cocogitto/cocogitto/releases/latest | jq -r '.tag_name')
-          curl -sSL "https://github.com/cocogitto/cocogitto/releases/download/${COCOGITTO_VERSION}/cocogitto-${COCOGITTO_VERSION}-x86_64-unknown-linux-musl.tar.gz" | tar -xz
-          sudo mv x86_64-unknown-linux-musl/cog /usr/local/bin/cocogitto
-          chmod +x /usr/local/bin/cocogitto
-          cocogitto --version
-
       - name: Generate changelog with Cocogitto
         id: changelog
-        run: |
-          # Generate changelog using Cocogitto
-          cocogitto changelog
-          
-          # If no changelog was generated, create a basic one
-          if [ ! -f CHANGELOG.md ]; then
-            echo "# Changelog" > CHANGELOG.md
-            echo "" >> CHANGELOG.md
-            echo "## [${{ steps.version.outputs.VERSION }}] - $(date +%Y-%m-%d)" >> CHANGELOG.md
-            echo "" >> CHANGELOG.md
-            echo "### Added" >> CHANGELOG.md
-            echo "- Initial release" >> CHANGELOG.md
-          fi
-          
-          echo "Generated changelog:"
-          head -20 CHANGELOG.md
+        uses: cocogitto/cocogitto-action@v3
+        with:
+          release: true
+          git-user: 'OpenAPI K8s Operator Bot'
+          git-user-email: 'openapi-k8s-operator@noreply.github.com'
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
