@@ -39,12 +39,25 @@ operator:
       value: "info"
     - name: METRICS_PORT
       value: "8080"
+  serviceAccount:
+    create: true
+  rbac:
+    create: true
+    clusterWide: true
+  networkPolicy:
+    enabled: true
+    allowClusterWide: true
 
 openapiServer:
   enabled: true
+  image:
+    repository: ghcr.io/ch-vik/openapi-k8s-discovery-server
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 80
+    targetPort: 8080
   ingress:
     enabled: true
     className: "nginx"
@@ -53,10 +66,21 @@ openapiServer:
         paths:
           - path: /
             pathType: Prefix
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
 
 namespace:
   create: true
   name: "openapi-system"
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
 EOF
 
 # Install with custom values
@@ -77,17 +101,55 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 | `operator.deployment.replicaCount` | Number of replicas (should be 1 for operator) | `1` |
 | `operator.resources.limits.cpu` | CPU limit | `500m` |
 | `operator.resources.limits.memory` | Memory limit | `512Mi` |
+| `operator.resources.requests.cpu` | CPU request | `100m` |
+| `operator.resources.requests.memory` | Memory request | `128Mi` |
+| `operator.serviceAccount.create` | Create service account | `true` |
+| `operator.serviceAccount.name` | Service account name | `""` (auto-generated) |
+| `operator.rbac.create` | Create RBAC resources | `true` |
+| `operator.rbac.clusterWide` | Use cluster-wide RBAC | `false` |
+| `operator.networkPolicy.enabled` | Enable network policy | `true` |
+| `operator.networkPolicy.allowClusterWide` | Allow cluster-wide communication | `false` |
 
 ### OpenAPI Server Configuration
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `openapiServer.enabled` | Enable OpenAPI server deployment | `false` |
-| `openapiServer.image.repository` | OpenAPI server image repository | `swaggerapi/swagger-ui` |
-| `openapiServer.image.tag` | OpenAPI server image tag | `v5.9.0` |
+| `openapiServer.enabled` | Enable OpenAPI server deployment | `true` |
+| `openapiServer.image.repository` | OpenAPI server image repository | `ghcr.io/ch-vik/openapi-k8s-discovery-server` |
+| `openapiServer.image.tag` | OpenAPI server image tag | `0.1.0` |
+| `openapiServer.image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| `openapiServer.deployment.replicaCount` | Number of replicas | `1` |
 | `openapiServer.service.type` | Service type | `ClusterIP` |
 | `openapiServer.service.port` | Service port | `80` |
+| `openapiServer.service.targetPort` | Service target port | `8080` |
 | `openapiServer.ingress.enabled` | Enable ingress | `false` |
+| `openapiServer.ingress.className` | Ingress class name | `""` |
+| `openapiServer.ingress.hosts` | Ingress hosts configuration | `[{host: "openapi.example.com", paths: [{path: "/", pathType: "Prefix"}]}]` |
+| `openapiServer.resources.limits.cpu` | CPU limit | `200m` |
+| `openapiServer.resources.limits.memory` | Memory limit | `256Mi` |
+| `openapiServer.resources.requests.cpu` | CPU request | `50m` |
+| `openapiServer.resources.requests.memory` | Memory request | `64Mi` |
+
+### Global Configuration
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `global.imageRegistry` | Global image registry | `""` |
+| `global.imagePullSecrets` | Global image pull secrets | `[]` |
+
+### Namespace Configuration
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `namespace.create` | Create namespace | `false` |
+| `namespace.name` | Namespace name | `"default"` |
+
+### Common Labels and Annotations
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `commonLabels` | Common labels for all resources | `{}` |
+| `commonAnnotations` | Common annotations for all resources | `{}` |
 
 ### RBAC Configuration
 
@@ -134,15 +196,7 @@ If the OpenAPI server is enabled, you can access it via:
 
 ### Monitoring
 
-The operator exposes Prometheus metrics on port 8080 at `/metrics`. If you have Prometheus installed, you can enable the ServiceMonitor:
-
-```yaml
-operator:
-  serviceMonitor:
-    enabled: true
-    labels:
-      release: prometheus
-```
+The operator exposes Prometheus metrics on port 8080 at `/metrics`. You can scrape these metrics using your existing Prometheus configuration or ServiceMonitor resources.
 
 ## Scaling Considerations
 

@@ -28,37 +28,75 @@ helm/openapi-k8s-operator/
 
 ## Key Features
 
-### 1. Smart RBAC Configuration
+### 1. Enhanced OpenAPI Server Integration
+
+- **Custom Discovery Server**: Built-in Rust/Axum server for OpenAPI documentation aggregation
+- **ConfigMap Integration**: Automatic mounting of discovery ConfigMap
+- **Flexible Networking**: Configurable service ports and ingress settings
+- **Resource Optimization**: Tunable CPU and memory limits for different environments
+- **Security Hardening**: Non-root execution with proper security contexts
+
+### 2. Smart RBAC Configuration
 
 - **Single Namespace**: Uses `Role` and `RoleBinding`
 - **Multiple/All Namespaces**: Automatically uses `ClusterRole` and `ClusterRoleBinding`
 - **Automatic Detection**: Based on `WATCH_NAMESPACES` environment variable
 
-### 2. Flexible Deployment Options
+### 3. Flexible Deployment Options
 
 - **StatefulSet** (default): Better for single-instance operators
 - **Deployment**: Alternative option for different use cases
 - **Configurable Replicas**: Defaults to 1 (recommended for operators)
 
-### 3. Security Features
+### 4. Security Features
 
 - **NetworkPolicy**: Restricts network access based on namespace configuration
 - **Pod Security Context**: Non-root user, read-only filesystem
 - **Resource Limits**: CPU and memory constraints
 - **Security Context**: Drop all capabilities, no privilege escalation
 
-### 4. Optional OpenAPI Server
+### 5. Optional OpenAPI Server
 
-- **Scalar UI**: Deployable Scalar UI server (Axum)
+- **Custom Server**: Deployable OpenAPI discovery server (Rust/Axum)
 - **ConfigMap Mount**: Automatically mounts discovery ConfigMap
-- **Service & Ingress**: Full networking configuration
-- **Customizable**: Image, resources, and deployment options
+- **Service & Ingress**: Full networking configuration with customizable ports
+- **Resource Management**: Configurable CPU and memory limits/requests
+- **Security Context**: Non-root execution with proper security settings
+- **Image Configuration**: Customizable repository, tag, and pull policy
 
-### 5. Configuration Management
+### 6. Configuration Management
 
 - **Structured Configuration**: Uses `config` section instead of direct environment variables
 - **Extra Environment Variables**: `extraEnv` for additional customization
+- **Global Settings**: Image registry and pull secrets configuration
+- **Namespace Management**: Optional namespace creation and configuration
+- **Common Labels/Annotations**: Consistent labeling across all resources
 - **Best Practices**: Follows Helm best practices for configuration
+
+## Latest Configuration Options
+
+### Global Settings
+- `global.imageRegistry`: Override image registry for all images
+- `global.imagePullSecrets`: Global image pull secrets
+- `commonLabels`: Common labels applied to all resources
+- `commonAnnotations`: Common annotations applied to all resources
+
+### Namespace Management
+- `namespace.create`: Create a dedicated namespace
+- `namespace.name`: Target namespace name
+
+### Enhanced OpenAPI Server
+- `openapiServer.enabled`: Enable the OpenAPI discovery server (default: true)
+- `openapiServer.image.repository`: Custom image repository
+- `openapiServer.image.tag`: Image tag version
+- `openapiServer.image.pullPolicy`: Image pull policy
+- `openapiServer.service.targetPort`: Custom target port for the service
+- `openapiServer.resources`: CPU and memory limits/requests
+
+### Monitoring Integration
+- The operator exposes Prometheus metrics on port 8080 at `/metrics`
+- You can scrape these metrics using your existing Prometheus configuration
+- ServiceMonitor resources can be created separately if needed
 
 ## Configuration Examples
 
@@ -73,7 +111,10 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator
 ```bash
 helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
   --set openapiServer.enabled=true \
+  --set openapiServer.image.repository=ghcr.io/ch-vik/openapi-k8s-discovery-server \
+  --set openapiServer.image.tag=0.1.0 \
   --set openapiServer.ingress.enabled=true \
+  --set openapiServer.ingress.className=nginx \
   --set openapiServer.ingress.hosts[0].host=openapi.example.com
 ```
 
@@ -84,6 +125,24 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
   --set namespace.create=true \
   --set namespace.name=openapi-system \
   --set operator.config.discoveryNamespace=openapi-system
+```
+
+### Production Deployment with Monitoring
+
+```bash
+helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
+  --set operator.config.watchNamespaces=all \
+  --set operator.rbac.clusterWide=true \
+  --set operator.networkPolicy.allowClusterWide=true \
+  --set openapiServer.enabled=true \
+  --set openapiServer.ingress.enabled=true \
+  --set openapiServer.ingress.className=nginx \
+  --set openapiServer.ingress.hosts[0].host=api-docs.company.com \
+  --set openapiServer.resources.limits.cpu=500m \
+  --set openapiServer.resources.limits.memory=512Mi \
+  --set global.imageRegistry=your-registry.com \
+  --set namespace.create=true \
+  --set namespace.name=openapi-system
 ```
 
 ## Scaling Considerations
