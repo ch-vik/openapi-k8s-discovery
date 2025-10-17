@@ -12,8 +12,8 @@ global:
 operator:
   # Image configuration
   image:
-    repository: openapi-k8s-operator
-    tag: "latest"
+    repository: ghcr.io/ch-vik/openapi-k8s-discovery-operator
+    #tag: "0.1.0" # Defaults to appVersion
     pullPolicy: IfNotPresent
 
   # Deployment configuration
@@ -21,7 +21,7 @@ operator:
     name: openapi-k8s-operator
     # Use StatefulSet instead of Deployment
     useStatefulSet: true
-    # Replicas (should be 1 for operator)
+    # Replicas (must be 1 for operator)
     replicaCount: 1
     # Pod security context
     podSecurityContext:
@@ -98,11 +98,11 @@ operator:
 # OpenAPI Server configuration (optional)
 openapiServer:
   enabled: true
-  
+
   # Image configuration
   image:
-    repository: openapi-doc-server
-    tag: "latest"
+    repository: ghcr.io/ch-vik/openapi-k8s-discovery-server
+    tag: "0.1.0"
     pullPolicy: IfNotPresent
 
   # Deployment configuration
@@ -151,11 +151,6 @@ openapiServer:
           - path: /
             pathType: Prefix
     tls: []
-
-  # ConfigMap mount for discovery data
-  configMap:
-    name: "swagger-config"
-    mountPath: "/usr/share/nginx/html/swagger-config"
 
 # Namespace configuration
 namespace:

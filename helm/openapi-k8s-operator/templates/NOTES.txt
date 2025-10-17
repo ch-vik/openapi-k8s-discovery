@@ -18,16 +18,10 @@
    OpenAPI Server is disabled. Enable it by setting openapiServer.enabled=true
    {{- end }}
 
-5. {{- if .Values.operator.serviceMonitor.enabled }}
-   ServiceMonitor is enabled for Prometheus monitoring.
-   {{- else }}
-   ServiceMonitor is disabled. Enable it by setting operator.serviceMonitor.enabled=true
-   {{- end }}
-
-6. Check operator logs:
+5. Check operator logs:
    kubectl logs -l app.kubernetes.io/name={{ include "openapi-k8s-operator.name" . }}
 
-7. Check discovery ConfigMap:
+6. Check discovery ConfigMap:
    kubectl get configmap {{ .Values.operator.config.discoveryConfigMap }} -n {{ .Values.operator.config.discoveryNamespace }}
 
-8. For more information, see the README.md file.
+7. For more information, see the README.md file.

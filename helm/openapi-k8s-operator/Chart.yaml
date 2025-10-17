@@ -8,11 +8,11 @@ keywords:
   - kubernetes
   - operator
   - openapi
-  - swagger
+  - scalar
   - documentation
-home: https://github.com/your-org/openapi-k8s-operator
+home: https://github.com/ch-vik/openapi-k8s-discovery
 sources:
-  - https://github.com/your-org/openapi-k8s-operator
+  - https://github.com/ch-vik/openapi-k8s-discovery
 maintainers:
-  - name: Your Name
-    email: your.email@example.com
+  - name: Kevin C.
+    email: kevin.ceresa@swisstilab.ch
