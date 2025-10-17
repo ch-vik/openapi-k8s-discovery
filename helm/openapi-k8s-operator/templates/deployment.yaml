@@ -1,0 +1,74 @@
+{{- if not .Values.operator.deployment.useStatefulSet }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openapi-k8s-operator.operatorName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.operator.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openapi-k8s-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "openapi-k8s-operator.selectorLabels" . | nindent 8 }}
+        {{- with .Values.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.commonAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openapi-k8s-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.operator.deployment.podSecurityContext | nindent 8 }}
+      containers:
+      - name: operator
+        securityContext:
+          {{- toYaml .Values.operator.deployment.securityContext | nindent 12 }}
+        image: {{ include "openapi-k8s-operator.image" . }}
+        imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
+        ports:
+        - name: metrics
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: WATCH_NAMESPACES
+          value: {{ .Values.operator.config.watchNamespaces | quote }}
+        - name: DISCOVERY_NAMESPACE
+          value: {{ .Values.operator.config.discoveryNamespace | quote }}
+        - name: DISCOVERY_CONFIGMAP
+          value: {{ .Values.operator.config.discoveryConfigMap | quote }}
+        {{- with .Values.operator.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.operator.resources | nindent 10 }}
+        {{- with .Values.operator.nodeSelector }}
+        nodeSelector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.operator.affinity }}
+        affinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.operator.tolerations }}
+        tolerations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- end }}

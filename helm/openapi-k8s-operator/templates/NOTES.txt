@@ -1,0 +1,33 @@
+1. OpenAPI K8s Operator has been deployed successfully!
+
+2. To make services discoverable, add these annotations to your services:
+   api-doc.io/enabled: "true"
+   api-doc.io/path: "/swagger/openapi.yml"
+   api-doc.io/name: "Your API Name"
+   api-doc.io/description: "Your API Description"
+
+3. The operator will create a ConfigMap named "{{ .Values.operator.config.discoveryConfigMap }}" in the "{{ .Values.operator.config.discoveryNamespace }}" namespace.
+
+4. {{- if .Values.openapiServer.enabled }}
+   OpenAPI Server is enabled and accessible at:
+   - Service: {{ include "openapi-k8s-operator.serverServiceName" . }}.{{ .Values.namespace.name }}.svc.cluster.local
+   {{- if .Values.openapiServer.ingress.enabled }}
+   - Ingress: {{ range .Values.openapiServer.ingress.hosts }}{{ .host }}{{ end }}
+   {{- end }}
+   {{- else }}
+   OpenAPI Server is disabled. Enable it by setting openapiServer.enabled=true
+   {{- end }}
+
+5. {{- if .Values.operator.serviceMonitor.enabled }}
+   ServiceMonitor is enabled for Prometheus monitoring.
+   {{- else }}
+   ServiceMonitor is disabled. Enable it by setting operator.serviceMonitor.enabled=true
+   {{- end }}
+
+6. Check operator logs:
+   kubectl logs -l app.kubernetes.io/name={{ include "openapi-k8s-operator.name" . }}
+
+7. Check discovery ConfigMap:
+   kubectl get configmap {{ .Values.operator.config.discoveryConfigMap }} -n {{ .Values.operator.config.discoveryNamespace }}
+
+8. For more information, see the README.md file.

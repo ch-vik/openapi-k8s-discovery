@@ -1,0 +1,205 @@
+# Test API service with mock OpenAPI documentation
+# This is a simple test case that serves a static OpenAPI spec
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-api
+  namespace: default
+  annotations:
+    api-doc.io/enabled: "true"
+    api-doc.io/name: "Test API"
+    api-doc.io/description: "A simple test API for demonstration"
+    api-doc.io/path: "/openapi.json"
+  labels:
+    app.kubernetes.io/name: test-api
+    app.kubernetes.io/component: api
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: test-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-api
+  namespace: default
+  labels:
+    app.kubernetes.io/name: test-api
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-api
+    spec:
+      containers:
+        - name: test-api
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: api-docs
+              mountPath: /usr/share/nginx/html
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "25m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: api-docs
+          configMap:
+            name: test-api-docs
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-api-docs
+  namespace: default
+  labels:
+    app.kubernetes.io/name: test-api
+    app.kubernetes.io/component: api
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test API</title>
+    </head>
+    <body>
+        <h1>Test API</h1>
+        <p>This is a simple test API.</p>
+        <p><a href="/openapi.json">OpenAPI Specification</a></p>
+        <p><a href="/health">Health Check</a></p>
+    </body>
+    </html>
+  health: |
+    OK
+  openapi.json: |
+    {
+      "openapi": "3.0.0",
+      "info": {
+        "title": "Test API",
+        "description": "A simple test API for demonstration",
+        "version": "1.0.0"
+      },
+      "servers": [
+        {
+          "url": "http://test-api.default.svc.cluster.local:8080"
+        }
+      ],
+      "paths": {
+        "/health": {
+          "get": {
+            "summary": "Health check",
+            "description": "Returns the health status of the API",
+            "responses": {
+              "200": {
+                "description": "API is healthy",
+                "content": {
+                  "text/plain": {
+                    "schema": {
+                      "type": "string",
+                      "example": "OK"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/users": {
+          "get": {
+            "summary": "List users",
+            "description": "Returns a list of users",
+            "responses": {
+              "200": {
+                "description": "List of users",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "post": {
+            "summary": "Create user",
+            "description": "Creates a new user",
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "User created successfully",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "components": {
+        "schemas": {
+          "User": {
+            "type": "object",
+            "required": ["id", "name", "email"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "User ID"
+              },
+              "name": {
+                "type": "string",
+                "description": "User's full name"
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "description": "User's email address"
+              }
+            }
+          }
+        }
+      }
+    }

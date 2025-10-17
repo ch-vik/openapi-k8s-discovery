@@ -1,0 +1,18 @@
+apiVersion: v2
+name: openapi-k8s-operator
+description: A Kubernetes operator for aggregating OpenAPI documentation from multiple services
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - operator
+  - openapi
+  - swagger
+  - documentation
+home: https://github.com/your-org/openapi-k8s-operator
+sources:
+  - https://github.com/your-org/openapi-k8s-operator
+maintainers:
+  - name: Your Name
+    email: your.email@example.com

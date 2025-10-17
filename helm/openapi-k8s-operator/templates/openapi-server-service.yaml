@@ -1,0 +1,27 @@
+{{- if .Values.openapiServer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "openapi-k8s-operator.serverServiceName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    app.kubernetes.io/component: openapi-server
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.openapiServer.service.type }}
+  ports:
+  - port: {{ .Values.openapiServer.service.port }}
+    targetPort: {{ .Values.openapiServer.service.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "openapi-k8s-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: openapi-server
+{{- end }}

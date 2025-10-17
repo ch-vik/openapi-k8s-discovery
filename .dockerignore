@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Examples
+examples/
+
+# OpenAPI doc server (separate project)
+openapi-doc-server/
+
+# Manifests (not needed in container)
+manifests/
+
+# Scripts
+deploy.sh
+*.sh
+
+# Rust build artifacts
+target/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

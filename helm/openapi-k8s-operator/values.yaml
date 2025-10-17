@@ -1,0 +1,171 @@
+# Default values for openapi-k8s-operator
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  # Image registry and repository
+  imageRegistry: ""
+  # Image pull secrets
+  imagePullSecrets: []
+
+# Operator configuration
+operator:
+  # Image configuration
+  image:
+    repository: openapi-k8s-operator
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # Deployment configuration
+  deployment:
+    name: openapi-k8s-operator
+    # Use StatefulSet instead of Deployment
+    useStatefulSet: true
+    # Replicas (should be 1 for operator)
+    replicaCount: 1
+    # Pod security context
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      fsGroup: 1000
+    # Container security context
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      capabilities:
+        drop:
+          - ALL
+
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # Node selector and tolerations
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # Configuration
+  config:
+    # Namespaces to watch (empty = current namespace, "all" = all namespaces, comma-separated list)
+    watchNamespaces: ""
+    # Namespace where discovery ConfigMap will be created
+    discoveryNamespace: "default"
+    # Name of the discovery ConfigMap
+    discoveryConfigMap: "openapi-discovery"
+
+  # Additional environment variables for customization
+  extraEnv: []
+  # Example:
+  # extraEnv:
+  #   - name: LOG_LEVEL
+  #     value: "debug"
+  #   - name: METRICS_PORT
+  #     value: "8080"
+
+  # Service account
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+
+  # RBAC configuration
+  rbac:
+    create: true
+    # If watching all namespaces or multiple namespaces, cluster-wide RBAC is needed
+    clusterWide: false
+
+  # Network policy
+  networkPolicy:
+    enabled: true
+    # Allow communication to whole cluster (if watching all namespaces)
+    allowClusterWide: false
+
+  # ServiceMonitor for Prometheus
+  serviceMonitor:
+    enabled: false
+    labels: {}
+    interval: "30s"
+    scrapeTimeout: "10s"
+
+# OpenAPI Server configuration (optional)
+openapiServer:
+  enabled: true
+  
+  # Image configuration
+  image:
+    repository: openapi-doc-server
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # Deployment configuration
+  deployment:
+    name: openapi-server
+    replicaCount: 1
+    # Pod security context
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      fsGroup: 1000
+    # Container security context
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      runAsNonRoot: true
+      runAsUser: 1000
+      capabilities:
+        drop:
+          - ALL
+
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  # Service configuration
+  service:
+    name: openapi-server
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+
+  # Ingress configuration
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: openapi.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+  # ConfigMap mount for discovery data
+  configMap:
+    name: "swagger-config"
+    mountPath: "/usr/share/nginx/html/swagger-config"
+
+# Namespace configuration
+namespace:
+  # Create namespace
+  create: false
+  # Namespace name (if not creating, this should be set to target namespace)
+  name: "default"
+
+# Common labels
+commonLabels: {}
+
+# Common annotations
+commonAnnotations: {}

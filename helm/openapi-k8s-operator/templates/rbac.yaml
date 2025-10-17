@@ -1,0 +1,79 @@
+{{- if .Values.operator.rbac.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "openapi-k8s-operator.fullname" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+{{- if include "openapi-k8s-operator.clusterWideRBAC" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "openapi-k8s-operator.fullname" . }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "openapi-k8s-operator.fullname" . }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "openapi-k8s-operator.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "openapi-k8s-operator.serviceAccountName" . }}
+  namespace: {{ .Values.namespace.name }}
+{{- else }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "openapi-k8s-operator.fullname" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "openapi-k8s-operator.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "openapi-k8s-operator.serviceAccountName" . }}
+  namespace: {{ .Values.namespace.name }}
+{{- end }}
+{{- end }}
+{{- if .Values.openapiServer.enabled }}
+{{- end }}

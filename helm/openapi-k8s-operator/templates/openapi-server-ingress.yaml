@@ -1,0 +1,44 @@
+{{- if and .Values.openapiServer.enabled .Values.openapiServer.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "openapi-k8s-operator.serverName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    app.kubernetes.io/component: openapi-server
+  {{- with .Values.openapiServer.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.openapiServer.ingress.className }}
+  ingressClassName: {{ .Values.openapiServer.ingress.className }}
+  {{- end }}
+  {{- if .Values.openapiServer.ingress.tls }}
+  tls:
+    {{- toYaml .Values.openapiServer.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.openapiServer.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "openapi-k8s-operator.serverServiceName" $ }}
+                port:
+                  number: {{ $.Values.openapiServer.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

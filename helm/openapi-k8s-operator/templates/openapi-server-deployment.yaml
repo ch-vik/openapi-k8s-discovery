@@ -1,0 +1,79 @@
+{{- if .Values.openapiServer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openapi-k8s-operator.serverName" . }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    {{- with .Values.commonLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    app.kubernetes.io/component: openapi-server
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.openapiServer.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "openapi-k8s-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: openapi-server
+  template:
+    metadata:
+      labels:
+        {{- include "openapi-k8s-operator.selectorLabels" . | nindent 8 }}
+        {{- with .Values.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        app.kubernetes.io/component: openapi-server
+      {{- with .Values.commonAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.openapiServer.deployment.podSecurityContext | nindent 8 }}
+      containers:
+      - name: openapi-server
+        securityContext:
+          {{- toYaml .Values.openapiServer.deployment.securityContext | nindent 12 }}
+        image: "{{ .Values.openapiServer.image.repository }}:{{ .Values.openapiServer.image.tag }}"
+        imagePullPolicy: {{ .Values.openapiServer.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: RUST_LOG
+          value: "info"
+        - name: PORT
+          value: "8080"
+        volumeMounts:
+        - name: discovery-config
+          mountPath: /etc/config
+          readOnly: true
+        resources:
+          {{- toYaml .Values.openapiServer.resources | nindent 10 }}
+        {{- with .Values.openapiServer.nodeSelector }}
+        nodeSelector:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.openapiServer.affinity }}
+        affinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.openapiServer.tolerations }}
+        tolerations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      volumes:
+      - name: discovery-config
+        configMap:
+          name: {{ .Values.operator.config.discoveryConfigMap }}
+{{- end }}
