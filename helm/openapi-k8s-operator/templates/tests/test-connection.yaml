@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: "{{ include "openapi-k8s-operator.fullname" . }}-test-connection"
-  namespace: {{ .Values.namespace.name }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
     {{- with .Values.commonLabels }}

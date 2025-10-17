@@ -82,8 +82,10 @@ helm/openapi-k8s-operator/
 - `commonAnnotations`: Common annotations applied to all resources
 
 ### Namespace Management
-- `namespace.create`: Create a dedicated namespace
-- `namespace.name`: Target namespace name
+- `namespace.create`: Create a dedicated namespace resource (separate from deployment namespace)
+- `namespace.name`: Namespace name for the created namespace resource
+- **Deployment Namespace**: All resources deploy to the namespace specified during `helm install`
+- **Discovery ConfigMap**: Created in release namespace by default (configurable via `operator.config.discoveryNamespace`)
 
 ### Enhanced OpenAPI Server
 - `openapiServer.enabled`: Enable the OpenAPI discovery server (default: true)
@@ -103,6 +105,10 @@ helm/openapi-k8s-operator/
 ### Basic Installation
 
 ```bash
+# Install in a specific namespace
+helm install openapi-k8s-operator ./helm/openapi-k8s-operator -n openapi-system --create-namespace
+
+# Or install in default namespace
 helm install openapi-k8s-operator ./helm/openapi-k8s-operator
 ```
 
@@ -121,10 +127,16 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
 ### Custom Namespace
 
 ```bash
+# Create a dedicated namespace and install in it
 helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
+  -n openapi-system --create-namespace \
   --set namespace.create=true \
-  --set namespace.name=openapi-system \
-  --set operator.config.discoveryNamespace=openapi-system
+  --set namespace.name=openapi-system
+
+# Or install in existing namespace with custom discovery namespace
+helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
+  -n my-namespace \
+  --set operator.config.discoveryNamespace=my-namespace
 ```
 
 ### Production Deployment with Monitoring

@@ -56,8 +56,8 @@ operator:
   config:
     # Namespaces to watch (empty = current namespace, "all" = all namespaces, comma-separated list)
     watchNamespaces: ""
-    # Namespace where discovery ConfigMap will be created
-    discoveryNamespace: "default"
+    # Namespace where discovery ConfigMap will be created (defaults to release namespace)
+    discoveryNamespace: ""
     # Name of the discovery ConfigMap
     discoveryConfigMap: "openapi-discovery"
 
@@ -154,10 +154,11 @@ openapiServer:
 
 # Namespace configuration
 namespace:
-  # Create namespace
+  # Create namespace (creates a dedicated namespace for the operator)
+  # Note: This is separate from the deployment namespace specified during helm install
   create: false
-  # Namespace name (if not creating, this should be set to target namespace)
-  name: "default"
+  # Namespace name (only used when create: true)
+  name: "openapi-system"
 
 # Common labels
 commonLabels: {}

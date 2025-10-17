@@ -6,11 +6,11 @@
    api-doc.io/name: "Your API Name"
    api-doc.io/description: "Your API Description"
 
-3. The operator will create a ConfigMap named "{{ .Values.operator.config.discoveryConfigMap }}" in the "{{ .Values.operator.config.discoveryNamespace }}" namespace.
+3. The operator will create a ConfigMap named "{{ .Values.operator.config.discoveryConfigMap }}" in the "{{ .Values.operator.config.discoveryNamespace | default .Release.Namespace }}" namespace.
 
 4. {{- if .Values.openapiServer.enabled }}
    OpenAPI Server is enabled and accessible at:
-   - Service: {{ include "openapi-k8s-operator.serverServiceName" . }}.{{ .Values.namespace.name }}.svc.cluster.local
+   - Service: {{ include "openapi-k8s-operator.serverServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local
    {{- if .Values.openapiServer.ingress.enabled }}
    - Ingress: {{ range .Values.openapiServer.ingress.hosts }}{{ .host }}{{ end }}
    {{- end }}
@@ -22,6 +22,6 @@
    kubectl logs -l app.kubernetes.io/name={{ include "openapi-k8s-operator.name" . }}
 
 6. Check discovery ConfigMap:
-   kubectl get configmap {{ .Values.operator.config.discoveryConfigMap }} -n {{ .Values.operator.config.discoveryNamespace }}
+   kubectl get configmap {{ .Values.operator.config.discoveryConfigMap }} -n {{ .Values.operator.config.discoveryNamespace | default .Release.Namespace }}
 
 7. For more information, see the README.md file.

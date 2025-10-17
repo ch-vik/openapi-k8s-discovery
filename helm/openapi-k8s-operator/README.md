@@ -17,7 +17,10 @@ This Helm chart deploys the OpenAPI K8s Operator, a Kubernetes operator that agg
 helm repo add openapi-k8s-operator https://your-repo.com/charts
 helm repo update
 
-# Install the operator
+# Install the operator in a specific namespace
+helm install openapi-k8s-operator ./helm/openapi-k8s-operator -n openapi-system --create-namespace
+
+# Or install in the default namespace
 helm install openapi-k8s-operator ./helm/openapi-k8s-operator
 ```
 
@@ -94,7 +97,7 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `operator.config.watchNamespaces` | Namespaces to watch (empty = current, "all" = all namespaces, comma-separated list) | `""` |
-| `operator.config.discoveryNamespace` | Namespace where discovery ConfigMap will be created | `"default"` |
+| `operator.config.discoveryNamespace` | Namespace where discovery ConfigMap will be created (defaults to release namespace) | `""` (uses release namespace) |
 | `operator.config.discoveryConfigMap` | Name of the discovery ConfigMap | `"openapi-discovery"` |
 | `operator.extraEnv` | Additional environment variables for customization | `[]` |
 | `operator.deployment.useStatefulSet` | Use StatefulSet instead of Deployment | `true` |
@@ -141,8 +144,8 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `namespace.create` | Create namespace | `false` |
-| `namespace.name` | Namespace name | `"default"` |
+| `namespace.create` | Create a dedicated namespace for the operator | `false` |
+| `namespace.name` | Namespace name (only used when create: true) | `"openapi-system"` |
 
 ### Common Labels and Annotations
 
@@ -150,6 +153,14 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 |-----------|-------------|---------|
 | `commonLabels` | Common labels for all resources | `{}` |
 | `commonAnnotations` | Common annotations for all resources | `{}` |
+
+### Namespace Behavior
+
+The chart follows standard Helm namespace behavior:
+
+- **Deployment Namespace**: All resources are deployed to the namespace specified during `helm install` (via `-n` or `--namespace` flag)
+- **Discovery ConfigMap**: Created in the release namespace by default (can be overridden with `operator.config.discoveryNamespace`)
+- **Optional Namespace Creation**: The `namespace.create` setting creates a separate namespace resource (useful for dedicated operator namespaces)
 
 ### RBAC Configuration
 

@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "openapi-k8s-operator.operatorName" . }}
-  namespace: {{ .Values.namespace.name }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
     {{- with .Values.commonLabels }}
@@ -52,7 +52,7 @@ spec:
         - name: WATCH_NAMESPACES
           value: {{ .Values.operator.config.watchNamespaces | quote }}
         - name: DISCOVERY_NAMESPACE
-          value: {{ .Values.operator.config.discoveryNamespace | quote }}
+          value: {{ .Values.operator.config.discoveryNamespace | default .Release.Namespace | quote }}
         - name: DISCOVERY_CONFIGMAP
           value: {{ .Values.operator.config.discoveryConfigMap | quote }}
         {{- with .Values.operator.extraEnv }}

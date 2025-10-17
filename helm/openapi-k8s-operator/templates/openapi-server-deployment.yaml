@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "openapi-k8s-operator.serverName" . }}
-  namespace: {{ .Values.namespace.name }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
     {{- with .Values.commonLabels }}
