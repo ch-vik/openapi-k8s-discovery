@@ -49,9 +49,12 @@ jobs:
       run: cargo clippy --all-targets --all-features -- -D warnings
       
     - name: Install Cocogitto
-      uses: cocogitto/install-action@v1
-      with:
-        version: latest
+      run: |
+        # Install Cocogitto binary
+        curl -sSL https://github.com/cocogitto/cocogitto/releases/latest/download/cocogitto-x86_64-unknown-linux-gnu.tar.gz | tar -xz
+        sudo mv cocogitto /usr/local/bin/
+        chmod +x /usr/local/bin/cocogitto
+        cocogitto --version
         
     - name: Check conventional commits
       run: cocogitto check
