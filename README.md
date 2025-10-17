@@ -1,23 +1,28 @@
 # OpenAPI K8s Operator
 
-A production-ready Kubernetes operator written in Rust that automatically discovers services with OpenAPI documentation and provides a centralized Swagger UI interface.
+A production-ready Kubernetes operator written in Rust that automatically discovers services with OpenAPI documentation and provides a centralized Scalar UI interface for browsing all discovered APIs.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-2024-orange.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-1.28+-blue.svg)](https://kubernetes.io/)
 
 ## Features
 
 - **Automatic Discovery**: Watches for Kubernetes services with API documentation annotations
-- **Centralized UI**: Provides a single Swagger UI interface for all discovered APIs
+- **Centralized UI**: Provides a single Scalar UI interface for all discovered APIs with dropdown selector
 - **Health Monitoring**: Continuously monitors API availability and updates status
 - **Production Ready**: Built with proper error handling, reconciliation, and RBAC
 - **Standard Annotations**: Uses standard Kubernetes annotation patterns
 - **Modern Rust**: Built with Rust 2024 edition and latest stable dependencies
-- **Distroless Security**: Uses distroless base image for minimal attack surface
+- **Workspace Architecture**: Organized as a Cargo workspace with shared components
+- **Scalar UI**: Beautiful, modern API documentation interface with first-class OpenAPI support
 
 ## Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   API Services  │    │  Rust Operator   │    │  Swagger UI     │
-│                 │    │                 │    │                 │
+│   API Services  │    │  Rust Operator   │    │  Scalar UI      │
+│                 │    │                  │    │                 │
 │ - Service A     │───▶│ - Watches        │───▶│ - Centralized   │
 │   (annotated)   │    │   Services       │    │   Interface     │
 │ - Service B     │    │ - Updates        │    │ - Multi-API     │
@@ -27,20 +32,51 @@ A production-ready Kubernetes operator written in Rust that automatically discov
 
 ## Quick Start
 
-### 1. Deploy the Operator
+### Prerequisites
+
+- Kubernetes cluster (1.28+)
+- Helm 3.x
+- kubectl configured to access your cluster
+
+### Installation
+
+#### Option 1: Helm Repository (Recommended)
 
 ```bash
-# Apply RBAC permissions
-kubectl apply -f manifests/rbac.yaml
+# Add the Helm repository
+helm repo add openapi-k8s-discovery https://ch-vik.github.io/openapi-k8s-discovery/
+helm repo update
 
-# Deploy the operator
-kubectl apply -f manifests/deployment.yaml
-
-# Deploy the centralized Swagger UI
-kubectl apply -f manifests/swagger-ui.yaml
+# Install the operator with OpenAPI server
+helm install openapi-operator openapi-k8s-discovery/openapi-k8s-discovery \
+  --set openapiServer.enabled=true
 ```
 
-### 2. Annotate Your Services
+#### Option 2: Direct Helm Chart
+
+```bash
+# Clone the repository
+git clone https://github.com/ch-vik/openapi-k8s-discovery.git
+cd openapi-k8s-discovery
+
+# Install with Helm
+helm install openapi-operator ./helm/openapi-k8s-discovery \
+  --set openapiServer.enabled=true
+```
+
+### Access the UI
+
+```bash
+# Port forward to access the Scalar UI
+kubectl port-forward service/openapi-server 3000:80
+
+# Open in browser
+open http://localhost:3000
+```
+
+## Usage
+
+### Annotate Your Services
 
 Add the following annotations to your services that expose OpenAPI documentation:
 
@@ -56,61 +92,46 @@ metadata:
     api-doc.io/path: "/swagger/openapi.yml"
 spec:
   ports:
-    - port: 8080
+    - port: 80
+      targetPort: 80
   selector:
     app: my-api
 ```
 
-### 3. Access the Centralized UI
+### Configuration Options
 
-Once deployed, access the centralized Swagger UI at:
-- `http://localhost:8080/swagger-ui/` (via port-forward)
-- Or configure an Ingress for external access
-
-## Helm Chart Deployment (Recommended)
-
-For production deployments, use the included Helm chart which provides comprehensive configuration options:
-
-### Basic Installation
+#### Basic Configuration
 
 ```bash
-# Install with default settings
-helm install openapi-k8s-operator ./helm/openapi-k8s-operator
+# Install with custom namespace
+helm install openapi-operator openapi-k8s-discovery/openapi-k8s-discovery \
+  --set namespace.create=true \
+  --set namespace.name=openapi-system \
+  --set openapiServer.enabled=true
 ```
 
-### Advanced Configuration
+#### Advanced Configuration
 
 ```bash
-# With OpenAPI server and ingress
-helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
+# Cluster-wide monitoring with custom settings
+helm install openapi-operator openapi-k8s-discovery/openapi-k8s-discovery \
+  --set operator.config.watchNamespaces=all \
+  --set operator.serviceMonitor.enabled=true \
   --set openapiServer.enabled=true \
   --set openapiServer.ingress.enabled=true \
-  --set openapiServer.ingress.hosts[0].host=openapi.example.com
-
-# Cluster-wide monitoring
-helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
-  --set operator.config.watchNamespaces=all \
-  --set operator.serviceMonitor.enabled=true
-
-# Custom namespace
-helm install openapi-k8s-operator ./helm/openapi-k8s-operator \
-  --set namespace.create=true \
-  --set namespace.name=openapi-system
+  --set openapiServer.ingress.hosts[0].host=api-docs.example.com
 ```
 
-**Key Features:**
-- Smart RBAC (Role vs ClusterRole based on namespace configuration)
-- StatefulSet support for single-instance operators
-- NetworkPolicy for security
-- Optional OpenAPI server deployment
-- Prometheus monitoring integration
-- Comprehensive customization options
+#### Environment Variables
 
-See [HELM.md](HELM.md) for detailed chart documentation.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WATCH_NAMESPACES` | `""` | Namespaces to watch (`""` = current, `"all"` = all, `"ns1,ns2"` = specific) |
+| `DISCOVERY_NAMESPACE` | `"default"` | Namespace where ConfigMap will be created |
+| `DISCOVERY_CONFIGMAP` | `"openapi-discovery"` | Name of the discovery ConfigMap |
+| `RUST_LOG` | `"info"` | Logging level |
 
-## Annotations
-
-The operator recognizes the following standard Kubernetes annotations:
+### Annotations Reference
 
 | Annotation | Required | Default | Description |
 |------------|----------|---------|-------------|
@@ -119,99 +140,9 @@ The operator recognizes the following standard Kubernetes annotations:
 | `api-doc.io/description` | No | - | Description of the API |
 | `api-doc.io/path` | No | `"/swagger/openapi.yml"` | Path to the OpenAPI specification |
 
-## Configuration
-
-### Environment Variables
-
-The operator supports the following environment variables:
-
-- `RUST_LOG`: Logging level (default: `info`)
-- `RUST_BACKTRACE`: Enable backtraces for debugging
-- `WATCH_NAMESPACES`: Namespace configuration (`"all"` = all namespaces, empty = current namespace, `"ns1,ns2"` = specific namespaces)
-- `DISCOVERY_NAMESPACE`: Namespace where the discovery ConfigMap will be created (default: `default`)
-- `DISCOVERY_CONFIGMAP`: Name of the discovery ConfigMap (default: `openapi-discovery`)
-
-### Namespace Configuration
-
-The operator can be configured to watch namespaces in three ways:
-
-**Watch Current Namespace Only (Default):**
-```yaml
-env:
-  - name: WATCH_NAMESPACES
-    value: ""  # Empty = current namespace only
-```
-
-**Watch All Namespaces (Requires Cluster RBAC):**
-```yaml
-env:
-  - name: WATCH_NAMESPACES
-    value: "all"  # "all" = all namespaces
-```
-
-**Watch Specific Namespaces:**
-```yaml
-env:
-  - name: WATCH_NAMESPACES
-    value: "default,production,staging"
-```
-
-**Custom Discovery Namespace:**
-```yaml
-env:
-  - name: DISCOVERY_NAMESPACE
-    value: "api-docs"  # ConfigMap will be created in api-docs namespace
-```
-
-**Custom ConfigMap Name:**
-```yaml
-env:
-  - name: DISCOVERY_CONFIGMAP
-    value: "my-api-discovery"  # Custom ConfigMap name
-```
-
-### Resource Requirements
-
-The operator is designed to be lightweight:
-
-- **Memory**: 64Mi request, 128Mi limit
-- **CPU**: 50m request, 100m limit
-
-## Development
-
-### Building the Operator
-
-```bash
-# Build the Rust binary
-cargo build --release
-
-# Build Docker image
-docker build -t openapi-k8s-operator:latest .
-```
-
-### Running Locally
-
-```bash
-# Set up kubectl context
-kubectl config use-context your-cluster
-
-# Run the operator
-cargo run
-```
-
-### Testing
-
-```bash
-# Run tests
-cargo test
-
-# Run with logging
-RUST_LOG=debug cargo run
-```
-
 ## Examples
 
-### Basic Service Annotation
+### Basic Service
 
 ```yaml
 apiVersion: v1
@@ -222,7 +153,8 @@ metadata:
     api-doc.io/enabled: "true"
 spec:
   ports:
-    - port: 8080
+    - port: 80
+      targetPort: 80
   selector:
     app: user-service
 ```
@@ -241,9 +173,95 @@ metadata:
     api-doc.io/path: "/api/v1/openapi.json"
 spec:
   ports:
-    - port: 8080
+    - port: 80
+      targetPort: 80
   selector:
     app: payment-service
+```
+
+### Test Services
+
+Deploy example services for testing:
+
+```bash
+# Deploy test services
+kubectl apply -f https://raw.githubusercontent.com/ch-vik/openapi-k8s-discovery/master/examples/test-api.yaml
+kubectl apply -f https://raw.githubusercontent.com/ch-vik/openapi-k8s-discovery/master/examples/simple-service.yaml
+```
+
+## Workspace Structure
+
+This project is organized as a Cargo workspace with three master components:
+
+```
+openapi-k8s-discovery/
+├── Cargo.toml                    # Workspace configuration
+├── crates/
+│   ├── openapi-common/           # Shared library
+│   │   ├── Cargo.toml
+│   │   └── src/lib.rs
+│   ├── openapi-k8s-discovery/     # Kubernetes operator
+│   │   ├── Cargo.toml
+│   │   ├── Dockerfile
+│   │   └── src/
+│   │       ├── master.rs
+│   │       └── error.rs
+│   └── openapi-doc-server/       # Scalar UI server
+│       ├── Cargo.toml
+│       ├── Dockerfile
+│       └── src/master.rs
+├── examples/                     # Example service definitions
+├── helm/                        # Helm chart for deployment
+└── README.md                    # This documentation
+```
+
+## Development
+
+### Prerequisites
+
+- Rust 1.85+
+- Docker
+- kubectl
+- Helm 3.x
+
+### Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/ch-vik/openapi-k8s-discovery.git
+cd openapi-k8s-discovery
+
+# Build all crates
+cargo build --workspace
+
+# Build with release optimizations
+cargo build --release --workspace
+
+# Run tests
+cargo test --workspace
+```
+
+### Building Docker Images
+
+```bash
+# Build operator image
+docker build -f crates/openapi-k8s-discovery/Dockerfile -t ghcr.io/ch-vik/openapi-k8s-discovery:latest .
+
+# Build server image
+docker build -f crates/openapi-doc-server/Dockerfile -t ghcr.io/ch-vik/openapi-doc-server:latest .
+```
+
+### Running Locally
+
+```bash
+# Set up kubectl context
+kubectl config use-context your-cluster
+
+# Run the operator
+cargo run -p openapi-k8s-discovery
+
+# Run the server (for testing)
+cargo run -p openapi-doc-server
 ```
 
 ## Troubleshooting
@@ -252,10 +270,10 @@ spec:
 
 ```bash
 # Check if the operator is running
-kubectl get pods -l app.kubernetes.io/name=openapi-k8s-operator
+kubectl get pods -l app.kubernetes.io/name=openapi-k8s-discovery
 
 # Check operator logs
-kubectl logs -l app.kubernetes.io/name=openapi-k8s-operator
+kubectl logs -l app.kubernetes.io/name=openapi-k8s-discovery
 ```
 
 ### Check Discovery ConfigMap
@@ -268,15 +286,28 @@ kubectl get configmap openapi-discovery -o yaml
 kubectl get configmap openapi-discovery -o jsonpath='{.data.discovery\.json}' | jq .
 ```
 
-### Check Swagger UI
+### Check Scalar UI Server
 
 ```bash
-# Check Swagger UI status
-kubectl get pods -l app.kubernetes.io/name=swagger-ui
+# Check server status
+kubectl get pods -l app.kubernetes.io/component=openapi-server
+
+# Check server logs
+kubectl logs -l app.kubernetes.io/component=openapi-server
 
 # Port forward for local testing
-kubectl port-forward svc/swagger-ui 8080:80
+kubectl port-forward service/openapi-server 3000:80
 ```
+
+### Common Issues
+
+1. **ConfigMap not found**: The operator initializes the ConfigMap at startup. If it's missing, check operator logs for initialization errors.
+
+2. **Services not discovered**: Ensure services have the `api-doc.io/enabled: "true"` annotation and are in watched namespaces.
+
+3. **OpenAPI specs not loading**: Check that the service is accessible and the path annotation is correct.
+
+4. **Port forwarding issues**: Ensure the service is running and the port mapping is correct.
 
 ## Security Considerations
 
@@ -284,15 +315,23 @@ kubectl port-forward svc/swagger-ui 8080:80
 - Only watches services and manages the discovery ConfigMap
 - No access to sensitive resources or data
 - All API calls are made within the cluster network
+- Scalar UI server fetches specs internally to avoid CORS issues
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests if applicable
-5. Submit a pull request
+5. Commit your changes (`git commit -m 'Add some amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- 🐛 [Issue Tracker](https://github.com/ch-vik/openapi-k8s-discovery/issues)
+- 📧 [Email Support](mailto:kevin.ceresa@swisstilab.ch)
