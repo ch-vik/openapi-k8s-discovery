@@ -9,8 +9,8 @@ README.md
 # Examples
 examples/
 
-# OpenAPI doc server (separate project)
-openapi-doc-server/
+# OpenAPI doc server (separate project) - only exclude if at root level
+# openapi-doc-server/
 
 # Manifests (not needed in container)
 manifests/

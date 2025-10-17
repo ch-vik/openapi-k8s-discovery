@@ -11,24 +11,11 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files first for better caching
+# Copy workspace files
 COPY Cargo.toml Cargo.lock ./
-COPY crates/openapi-common/Cargo.toml ./crates/openapi-common/
-COPY crates/openapi-k8s-operator/Cargo.toml ./crates/openapi-k8s-operator/
+COPY crates/ ./crates/
 
-# Create dummy main.rs files to build dependencies
-RUN mkdir -p crates/openapi-common/src crates/openapi-k8s-operator/src && \
-    echo "fn main() {}" > crates/openapi-common/src/lib.rs && \
-    echo "fn main() {}" > crates/openapi-k8s-operator/src/main.rs
-
-# Build dependencies (this layer will be cached if Cargo.toml doesn't change)
-RUN cargo build --release --package openapi-k8s-operator
-
-# Copy actual source code
-COPY crates/openapi-common/src ./crates/openapi-common/src
-COPY crates/openapi-k8s-operator/src ./crates/openapi-k8s-operator/src
-
-# Build the actual binary
+# Build the operator
 RUN cargo build --release --package openapi-k8s-operator
 
 # Runtime stage
