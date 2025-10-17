@@ -31,19 +31,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract operator version
-        id: operator-version
+      - name: Extract version from tag
+        id: tag-version
         run: |
-          OPERATOR_VERSION=$(grep '^version = ' crates/openapi-k8s-operator/Cargo.toml | cut -d'"' -f2)
-          echo "OPERATOR_VERSION=$OPERATOR_VERSION" >> $GITHUB_OUTPUT
-          echo "Operator version: $OPERATOR_VERSION"
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Tag version: $VERSION"
+          
+          # Check if it's a pre-release
+          if [[ "$VERSION" == *"-"* ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
+            echo "This is a pre-release version"
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+            echo "This is a final release version"
+          fi
 
-      - name: Extract server version
-        id: server-version
-        run: |
-          SERVER_VERSION=$(grep '^version = ' crates/openapi-doc-server/Cargo.toml | cut -d'"' -f2)
-          echo "SERVER_VERSION=$SERVER_VERSION" >> $GITHUB_OUTPUT
-          echo "Server version: $SERVER_VERSION"
 
       - name: Build and push operator image
         uses: docker/build-push-action@v5
@@ -53,15 +56,17 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}:${{ steps.operator-version.outputs.OPERATOR_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}:${{ steps.tag-version.outputs.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}:${{ github.ref_name }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_OPERATOR }}:latest
           labels: |
             org.opencontainers.image.title=OpenAPI K8s Operator
             org.opencontainers.image.description=Kubernetes operator for discovering and centralizing OpenAPI documentation
-            org.opencontainers.image.version=${{ steps.operator-version.outputs.OPERATOR_VERSION }}
+            org.opencontainers.image.version=${{ steps.tag-version.outputs.VERSION }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=operator
+          cache-to: type=gha,mode=max,scope=operator
 
       - name: Build and push server image
         uses: docker/build-push-action@v5
@@ -71,12 +76,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}:${{ steps.server-version.outputs.SERVER_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}:${{ steps.tag-version.outputs.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}:${{ github.ref_name }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_SERVER }}:latest
           labels: |
             org.opencontainers.image.title=OpenAPI Doc Server
             org.opencontainers.image.description=OpenAPI documentation server with Scalar UI
-            org.opencontainers.image.version=${{ steps.server-version.outputs.SERVER_VERSION }}
+            org.opencontainers.image.version=${{ steps.tag-version.outputs.VERSION }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server

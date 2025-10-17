@@ -1,0 +1,25 @@
+name: Conventional Commits
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-commits:
+    name: Validate Conventional Commits with Cocogitto
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Install Cocogitto
+      uses: cocogitto/install-action@v1
+      with:
+        version: latest
+        
+    - name: Validate commit messages
+      run: |
+        cocogitto check

@@ -1,0 +1,78 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+        - prerelease
+
+jobs:
+  version-bump:
+    name: Bump Version and Generate Changelog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Configure Git
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+    
+    - name: Install Cocogitto
+      uses: cocogitto/install-action@v1
+      with:
+        version: latest
+    
+    - name: Bump version
+      run: |
+        # Bump version in Cargo.toml files
+        cocogitto version ${{ github.event.inputs.version_type }}
+        
+        # Get the new version
+        NEW_VERSION=$(grep '^version = ' Cargo.toml | cut -d'"' -f2)
+        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+        echo "Bumped to version: $NEW_VERSION"
+    
+    - name: Generate changelog
+      run: |
+        cocogitto changelog
+        echo "Generated changelog:"
+        head -20 CHANGELOG.md
+    
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: bump version to ${{ env.NEW_VERSION }}"
+        title: "chore: bump version to ${{ env.NEW_VERSION }}"
+        body: |
+          ## Version Bump
+          
+          This PR bumps the version to **${{ env.NEW_VERSION }}**.
+          
+          ### Changes
+          - Updated version in all Cargo.toml files
+          - Generated changelog with latest commits
+          
+          ### Generated Changelog
+          ```markdown
+          $(cat CHANGELOG.md | head -20)
+          ```
+        branch: version-bump-${{ env.NEW_VERSION }}
+        delete-branch: true
