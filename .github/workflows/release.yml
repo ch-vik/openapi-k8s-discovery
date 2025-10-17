@@ -46,6 +46,12 @@ jobs:
           echo "Updated Chart.yaml:"
           echo "  version: ${{ steps.version.outputs.VERSION }}"
           echo "  appVersion: ${{ steps.version.outputs.VERSION }}"
+          
+          # Commit the changes
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add helm/openapi-k8s-operator/Chart.yaml
+          git commit -m "chore: update Chart.yaml version to ${{ steps.version.outputs.VERSION }}"
 
       - name: Update Helm values with Docker image references
         run: |
@@ -59,9 +65,7 @@ jobs:
         id: changelog
         uses: cocogitto/cocogitto-action@v3
         with:
-          release: true
-          git-user: 'OpenAPI K8s Operator Bot'
-          git-user-email: 'openapi-k8s-operator@noreply.github.com'
+          release: false
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
