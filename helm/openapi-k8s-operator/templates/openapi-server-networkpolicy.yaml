@@ -1,11 +1,12 @@
-{{- if .Values.operator.networkPolicy.enabled }}
+{{- if and .Values.openapiServer.enabled .Values.operator.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "openapi-k8s-operator.fullname" . }}
+  name: {{ include "openapi-k8s-operator.serverName" . }}-networkpolicy
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "openapi-k8s-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: openapi-server
     {{- with .Values.commonLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -16,7 +17,9 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      {{- include "openapi-k8s-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ include "openapi-k8s-operator.name" . }}
+      app.kubernetes.io/component: openapi-server
+      app.kubernetes.io/instance: {{ .Release.Name }}
   policyTypes:
   - Ingress
   - Egress
@@ -29,14 +32,12 @@ spec:
     ports:
     - protocol: TCP
       port: 8080
-  {{- if include "openapi-k8s-operator.clusterWideNetworkPolicy" . }}
-  # Allow ingress from any namespace when watching all namespaces
+  # Allow ingress from any namespace (OpenAPI server should be accessible cluster-wide)
   - from:
     - namespaceSelector: {}
     ports:
     - protocol: TCP
       port: 8080
-  {{- end }}
   egress:
   # Allow communication with Kubernetes API server
   - to: []
@@ -64,8 +65,7 @@ spec:
       port: 443
     - protocol: TCP
       port: 8080
-  {{- if include "openapi-k8s-operator.clusterWideNetworkPolicy" . }}
-  # Allow communication with services across all namespaces
+  # Allow communication with services across all namespaces (for fetching OpenAPI specs)
   - to:
     - namespaceSelector: {}
     ports:
@@ -81,5 +81,6 @@ spec:
       port: 8000
     - protocol: TCP
       port: 9000
-  {{- end }}
+    - protocol: TCP
+      port: 10000
 {{- end }}

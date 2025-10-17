@@ -54,6 +54,13 @@ spec:
           value: "info"
         - name: PORT
           value: "8080"
+        - name: DISCOVERY_NAMESPACE
+          value: {{ .Values.operator.config.discoveryNamespace | default .Release.Namespace | quote }}
+        - name: DISCOVERY_CONFIGMAP
+          value: {{ .Values.operator.config.discoveryConfigMap | quote }}
+        {{- with .Values.openapiServer.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         volumeMounts:
         - name: discovery-config
           mountPath: /etc/config

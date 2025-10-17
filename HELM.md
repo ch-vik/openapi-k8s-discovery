@@ -50,7 +50,9 @@ helm/openapi-k8s-operator/
 
 ### 4. Security Features
 
-- **NetworkPolicy**: Restricts network access based on namespace configuration
+- **NetworkPolicy**: Comprehensive network policies for operator and OpenAPI server
+  - Operator: Secure communication with Kubernetes API server and services
+  - OpenAPI Server: Cluster-wide access for fetching OpenAPI specifications
 - **Pod Security Context**: Non-root user, read-only filesystem
 - **Resource Limits**: CPU and memory constraints
 - **Security Context**: Drop all capabilities, no privilege escalation
@@ -94,6 +96,8 @@ helm/openapi-k8s-operator/
 - `openapiServer.image.pullPolicy`: Image pull policy
 - `openapiServer.service.targetPort`: Custom target port for the service
 - `openapiServer.resources`: CPU and memory limits/requests
+- `openapiServer.extraEnv`: Additional environment variables for customization
+- **Automatic Configuration**: Receives same discovery settings as operator (DISCOVERY_NAMESPACE, DISCOVERY_CONFIGMAP)
 
 ### Monitoring Integration
 - The operator exposes Prometheus metrics on port 8080 at `/metrics`

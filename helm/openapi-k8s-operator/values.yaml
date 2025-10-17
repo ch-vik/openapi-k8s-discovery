@@ -133,6 +133,15 @@ openapiServer:
       cpu: 50m
       memory: 64Mi
 
+  # Additional environment variables for customization
+  extraEnv: []
+  # Example:
+  # extraEnv:
+  #   - name: LOG_LEVEL
+  #     value: "debug"
+  #   - name: CUSTOM_SETTING
+  #     value: "value"
+
   # Service configuration
   service:
     name: openapi-server

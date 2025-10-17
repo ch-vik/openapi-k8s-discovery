@@ -76,6 +76,9 @@ openapiServer:
     requests:
       cpu: 50m
       memory: 64Mi
+  extraEnv:
+    - name: LOG_LEVEL
+      value: "debug"
 
 namespace:
   create: true
@@ -132,6 +135,7 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 | `openapiServer.resources.limits.memory` | Memory limit | `256Mi` |
 | `openapiServer.resources.requests.cpu` | CPU request | `50m` |
 | `openapiServer.resources.requests.memory` | Memory request | `64Mi` |
+| `openapiServer.extraEnv` | Additional environment variables for OpenAPI server | `[]` |
 
 ### Global Configuration
 
@@ -171,12 +175,29 @@ The chart automatically determines if cluster-wide RBAC is needed based on the `
 
 ### Network Policy
 
-The chart includes a NetworkPolicy that:
+The chart includes NetworkPolicies that provide secure communication:
 
+**Operator NetworkPolicy:**
 - Allows ingress on port 8080 (metrics) from the same namespace
 - If watching all namespaces, allows ingress from any namespace
-- Allows egress on ports 80 and 443 for API calls
+- Allows egress to Kubernetes API server (ports 443, 6443)
+- Allows egress to services in the same namespace (ports 80, 443, 8080)
+- If watching all namespaces, allows egress to services across all namespaces
 - Allows DNS resolution (UDP/TCP port 53)
+
+**OpenAPI Server NetworkPolicy (when enabled):**
+- Allows ingress on port 8080 from any namespace (cluster-wide access)
+- Allows egress to Kubernetes API server and all services for fetching OpenAPI specs
+- Allows communication with services on common ports (80, 443, 8080, 3000, 8000, 9000, 10000)
+
+### OpenAPI Server Configuration
+
+The OpenAPI server automatically receives the same configuration as the operator:
+
+- **DISCOVERY_NAMESPACE**: Namespace where the discovery ConfigMap is located
+- **DISCOVERY_CONFIGMAP**: Name of the discovery ConfigMap to read from
+- **ConfigMap Mount**: The discovery ConfigMap is mounted at `/etc/config`
+- **Custom Environment Variables**: Use `openapiServer.extraEnv` for additional configuration
 
 ## Usage
 
@@ -236,6 +257,28 @@ kubectl get configmap openapi-discovery -o yaml
 
 ```bash
 kubectl get services -o custom-columns=NAME:.metadata.name,ENABLED:.metadata.annotations.api-doc\.io/enabled,PATH:.metadata.annotations.api-doc\.io/path
+```
+
+### Check NetworkPolicy Issues
+
+If the operator or OpenAPI server cannot communicate:
+
+```bash
+# Check NetworkPolicy status
+kubectl get networkpolicy
+
+# Check if pods can reach Kubernetes API server
+kubectl exec -it <operator-pod> -- curl -k https://kubernetes.default.svc.cluster.local/api/v1/namespaces
+
+# Check if OpenAPI server can reach services
+kubectl exec -it <openapi-server-pod> -- curl http://<service-name>.<namespace>.svc.cluster.local
+```
+
+### Disable NetworkPolicy (if needed)
+
+```bash
+helm upgrade openapi-k8s-operator ./helm/openapi-k8s-operator \
+  --set operator.networkPolicy.enabled=false
 ```
 
 ## Uninstallation
