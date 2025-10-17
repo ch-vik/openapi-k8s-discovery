@@ -26,6 +26,29 @@ entries:
     version: 0.1.0
   - apiVersion: v2
     appVersion: 0.1.0
+    created: "2025-10-17T14:50:12.600237926Z"
+    description: A Kubernetes operator for aggregating OpenAPI documentation from
+      multiple services
+    digest: 10336b3caba5e3b2f1e75bc82e62a60032118aa8de41250d063acee32206422c
+    home: https://github.com/ch-vik/openapi-k8s-discovery
+    keywords:
+    - kubernetes
+    - operator
+    - openapi
+    - scalar
+    - documentation
+    maintainers:
+    - email: kevin.ceresa@swisstilab.ch
+      name: Kevin C.
+    name: openapi-k8s-operator
+    sources:
+    - https://github.com/ch-vik/openapi-k8s-discovery
+    type: application
+    urls:
+    - https://github.com/ch-vik/openapi-k8s-discovery/releases/download/openapi-k8s-operator-0.1.0-pre3/openapi-k8s-operator-0.1.0-pre3.tgz
+    version: 0.1.0-pre3
+  - apiVersion: v2
+    appVersion: 0.1.0
     created: "2025-10-17T14:36:50.846028763Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
@@ -47,4 +70,4 @@ entries:
     urls:
     - https://github.com/ch-vik/openapi-k8s-discovery/releases/download/openapi-k8s-operator-0.1.0-pre2/openapi-k8s-operator-0.1.0-pre2.tgz
     version: 0.1.0-pre2
-generated: "2025-10-17T14:36:50.846062917Z"
+generated: "2025-10-17T14:50:12.600253255Z"
