@@ -2,8 +2,31 @@ apiVersion: v1
 entries:
   openapi-k8s-operator:
   - apiVersion: v2
+    appVersion: 0.1.1
+    created: "2025-10-18T19:21:05.348555359Z"
+    description: A Kubernetes operator for aggregating OpenAPI documentation from
+      multiple services
+    digest: 84739c537078651d4bf271c9191e2ab2e371a28f08e0af37375d7c1c75be0d4c
+    home: https://github.com/ch-vik/openapi-k8s-discovery
+    keywords:
+    - kubernetes
+    - operator
+    - openapi
+    - scalar
+    - documentation
+    maintainers:
+    - email: kevin.ceresa@swisstilab.ch
+      name: Kevin C.
+    name: openapi-k8s-operator
+    sources:
+    - https://github.com/ch-vik/openapi-k8s-discovery
+    type: application
+    urls:
+    - https://ch-vik.github.io/openapi-k8s-discovery/openapi-k8s-operator-0.1.0-pre20.tgz
+    version: 0.1.0-pre20
+  - apiVersion: v2
     appVersion: 0.1.0-pre19
-    created: "2025-10-18T19:01:45.355459936Z"
+    created: "2025-10-18T19:21:05.347929332Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: c02da615ae24cb1a5ebb8e9517aaa6723ec7d161784a5301011ff04bb02c1b26
@@ -26,7 +49,7 @@ entries:
     version: 0.1.0-pre19
   - apiVersion: v2
     appVersion: 0.1.0-pre18
-    created: "2025-10-18T19:01:45.354823969Z"
+    created: "2025-10-18T19:21:05.347323053Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 26b4886a5cae14b7ee0a296774a2402d7f3f22a5722324729fef167db630a4c0
@@ -49,7 +72,7 @@ entries:
     version: 0.1.0-pre18
   - apiVersion: v2
     appVersion: 0.1.0-pre12
-    created: "2025-10-18T19:01:45.354113803Z"
+    created: "2025-10-18T19:21:05.346651582Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 5fed5313d835c7009d759f5d2a2c921bf5cde94a65f6a947a24a1edd455b7705
@@ -70,4 +93,4 @@ entries:
     urls:
     - https://ch-vik.github.io/openapi-k8s-discovery/openapi-k8s-operator-0.1.0-pre12.tgz
     version: 0.1.0-pre12
-generated: "2025-10-18T19:01:45.353322085Z"
+generated: "2025-10-18T19:21:05.345902556Z"
