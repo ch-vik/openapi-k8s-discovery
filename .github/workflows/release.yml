@@ -60,7 +60,7 @@ jobs:
           echo "Generated changelog:"
           head -10 CHANGELOG.md
 
-      - name: Package and Release
+      - name: Package Helm Chart
         run: |
           # Install Helm
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -71,33 +71,33 @@ jobs:
           
           echo "Packaged chart:"
           ls -la ./packages/
-          
-          # Create GitHub release
-          gh release create ${{ github.ref_name }} \
-            --title "Release ${{ steps.prepare.outputs.VERSION }}" \
-            --notes-file CHANGELOG.md \
-            --prerelease=${{ steps.prepare.outputs.IS_PRERELEASE }} \
-            ./packages/openapi-k8s-operator-${{ steps.prepare.outputs.VERSION }}.tgz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Helm Repository Index
         run: |
-          if ! git clone --branch gh-pages --single-branch https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages 2>/dev/null; then
+          # Install chart-releaser
+          curl -L https://github.com/helm/chart-releaser/releases/download/v1.6.1/chart-releaser_1.6.1_linux_amd64.tar.gz | tar -xz
+          chmod +x cr
+          sudo mv cr /usr/local/bin/cr
+          
+          # Clone gh-pages branch
+          git clone --branch gh-pages --single-branch https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages || {
             echo "gh-pages branch doesn't exist, creating it..."
             mkdir -p gh-pages
             cd gh-pages
             git init
             git checkout -b gh-pages
             git remote add origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          else
-            cd gh-pages
-          fi
+            cd ..
+          }
           
-          cp ../packages/openapi-k8s-operator-${{ steps.prepare.outputs.VERSION }}.tgz .
+          # Copy chart package to gh-pages
+          cp ./packages/openapi-k8s-operator-${{ steps.prepare.outputs.VERSION }}.tgz gh-pages/
           
-          helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          # Update the index using chart-releaser
+          cd gh-pages
+          cr index --charts-repo https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           
+          # Commit and push
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git add .
@@ -105,3 +105,14 @@ jobs:
           git push origin gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.prepare.outputs.VERSION }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ steps.prepare.outputs.IS_PRERELEASE }}
