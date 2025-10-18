@@ -80,3 +80,28 @@ jobs:
             ./packages/openapi-k8s-operator-${{ steps.prepare.outputs.VERSION }}.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Helm Repository Index
+        run: |
+          if ! git clone --branch gh-pages --single-branch https://github.com/${{ github.repository }}.git gh-pages 2>/dev/null; then
+            echo "gh-pages branch doesn't exist, creating it..."
+            mkdir -p gh-pages
+            cd gh-pages
+            git init
+            git checkout -b gh-pages
+            git remote add origin https://github.com/${{ github.repository }}.git
+          else
+            cd gh-pages
+          fi
+          
+          cp ../packages/openapi-k8s-operator-${{ steps.prepare.outputs.VERSION }}.tgz .
+          
+          helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git add .
+          git commit -m "chore: update helm chart index for ${{ steps.prepare.outputs.VERSION }}"
+          git push origin gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
