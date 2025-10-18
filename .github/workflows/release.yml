@@ -39,13 +39,18 @@ jobs:
 
       - name: Update Chart and Generate Changelog
         run: |
-          # Update Chart.yaml with the Git tag version
+          # Extract operator version from Cargo.toml
+          OPERATOR_VERSION=$(grep '^version = ' crates/openapi-k8s-operator/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "Operator version from Cargo.toml: $OPERATOR_VERSION"
+          
+          # Update Chart.yaml with the Git tag version for chart version
+          # and operator version for app version
           sed -i "s/^version: .*/version: ${{ steps.prepare.outputs.VERSION }}/" helm/openapi-k8s-operator/Chart.yaml
-          sed -i "s/^appVersion: .*/appVersion: \"${{ steps.prepare.outputs.VERSION }}\"/" helm/openapi-k8s-operator/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$OPERATOR_VERSION\"/" helm/openapi-k8s-operator/Chart.yaml
           
           echo "Updated Chart.yaml:"
-          echo "  version: ${{ steps.prepare.outputs.VERSION }}"
-          echo "  appVersion: ${{ steps.prepare.outputs.VERSION }}"
+          echo "  version: ${{ steps.prepare.outputs.VERSION }} (chart version)"
+          echo "  appVersion: $OPERATOR_VERSION (operator version)"
           
           # Commit the changes
           git add helm/openapi-k8s-operator/Chart.yaml
