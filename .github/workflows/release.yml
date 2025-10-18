@@ -61,25 +61,12 @@ jobs:
           head -10 CHANGELOG.md
 
       - name: Run chart-releaser
-        run: |
-          # Install chart-releaser
-          curl -L https://github.com/helm/chart-releaser/releases/download/v1.6.1/chart-releaser_1.6.1_linux_amd64.tar.gz | tar -xz
-          chmod +x cr
-          sudo mv cr /usr/local/bin/cr
-          
-          # Package charts
-          cr package helm/openapi-k8s-operator
-          
-          # Update index and push to gh-pages (without creating GitHub releases)
-          cr index \
-            --owner ${{ github.repository_owner }} \
-            --git-repo ${{ github.event.repository.name }} \
-            --charts-repo https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }} \
-            --packages-with-index \
-            --push \
-            --token ${{ secrets.GITHUB_TOKEN }}
+        uses: helm/chart-releaser-action@v1.7.0
+        with:
+          charts_dir: helm
+          packages_with_index: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
