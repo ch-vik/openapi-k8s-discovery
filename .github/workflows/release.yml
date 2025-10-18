@@ -60,49 +60,13 @@ jobs:
           echo "Generated changelog:"
           head -10 CHANGELOG.md
 
-      - name: Package Helm Chart
-        run: |
-          # Install Helm
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          
-          # Package Helm chart
-          mkdir -p ./packages
-          helm package helm/openapi-k8s-operator --destination ./packages
-          
-          echo "Packaged chart:"
-          ls -la ./packages/
-
-      - name: Update Helm Repository Index
-        run: |
-          # Install chart-releaser
-          curl -L https://github.com/helm/chart-releaser/releases/download/v1.6.1/chart-releaser_1.6.1_linux_amd64.tar.gz | tar -xz
-          chmod +x cr
-          sudo mv cr /usr/local/bin/cr
-          
-          # Clone gh-pages branch
-          git clone --branch gh-pages --single-branch https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages || {
-            echo "gh-pages branch doesn't exist, creating it..."
-            mkdir -p gh-pages
-            cd gh-pages
-            git init
-            git checkout -b gh-pages
-            git remote add origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-            cd ..
-          }
-          
-          # Copy chart package to gh-pages
-          cp ./packages/openapi-k8s-operator-${{ steps.prepare.outputs.VERSION }}.tgz gh-pages/
-          
-          # Update the index using chart-releaser
-          cd gh-pages
-          cr index \
-            --owner ${{ github.repository_owner }} \
-            --git-repo ${{ github.event.repository.name }} \
-            --charts-repo https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }} \
-            --push \
-            --token ${{ secrets.GITHUB_TOKEN }}
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: helm
+          skip_existing: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
