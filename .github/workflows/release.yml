@@ -101,12 +101,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        run: |
+          # Create GitHub release using GitHub CLI
+          gh release create ${{ github.ref_name }} \
+            --title "Release ${{ steps.prepare.outputs.VERSION }}" \
+            --notes-file CHANGELOG.md \
+            --prerelease=${{ steps.prepare.outputs.IS_PRERELEASE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ steps.prepare.outputs.VERSION }}
-          body_path: CHANGELOG.md
-          draft: false
-          prerelease: ${{ steps.prepare.outputs.IS_PRERELEASE }}
