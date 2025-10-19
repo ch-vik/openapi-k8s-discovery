@@ -4,7 +4,7 @@ A production-ready Kubernetes operator written in Rust that automatically discov
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-2024-orange.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/)
-[![Kubernetes](https://img.shields.io/badge/kubernetes-1.28+-blue.svg)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-1.32+-blue.svg)](https://kubernetes.io/)
 
 ## Features
 
@@ -124,21 +124,21 @@ helm install openapi-operator openapi-k8s-discovery/openapi-k8s-discovery \
 
 #### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WATCH_NAMESPACES` | `""` | Namespaces to watch (`""` = current, `"all"` = all, `"ns1,ns2"` = specific) |
-| `DISCOVERY_NAMESPACE` | `"default"` | Namespace where ConfigMap will be created |
-| `DISCOVERY_CONFIGMAP` | `"openapi-discovery"` | Name of the discovery ConfigMap |
-| `RUST_LOG` | `"info"` | Logging level |
+| Variable              | Default               | Description                                                                 |
+| --------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `WATCH_NAMESPACES`    | `""`                  | Namespaces to watch (`""` = current, `"all"` = all, `"ns1,ns2"` = specific) |
+| `DISCOVERY_NAMESPACE` | `"default"`           | Namespace where ConfigMap will be created                                   |
+| `DISCOVERY_CONFIGMAP` | `"openapi-discovery"` | Name of the discovery ConfigMap                                             |
+| `RUST_LOG`            | `"info"`              | Logging level                                                               |
 
 ### Annotations Reference
 
-| Annotation | Required | Default | Description |
-|------------|----------|---------|-------------|
-| `api-doc.io/enabled` | Yes | - | Set to `"true"` to enable API documentation discovery |
-| `api-doc.io/name` | No | `"{service-name} API"` | Display name for the API in the UI |
-| `api-doc.io/description` | No | - | Description of the API |
-| `api-doc.io/path` | No | `"/swagger/openapi.yml"` | Path to the OpenAPI specification |
+| Annotation               | Required | Default                  | Description                                           |
+| ------------------------ | -------- | ------------------------ | ----------------------------------------------------- |
+| `api-doc.io/enabled`     | Yes      | -                        | Set to `"true"` to enable API documentation discovery |
+| `api-doc.io/name`        | No       | `"{service-name} API"`   | Display name for the API in the UI                    |
+| `api-doc.io/description` | No       | -                        | Description of the API                                |
+| `api-doc.io/path`        | No       | `"/swagger/openapi.yml"` | Path to the OpenAPI specification                     |
 
 ## Examples
 
@@ -335,3 +335,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 🐛 [Issue Tracker](https://github.com/ch-vik/openapi-k8s-discovery/issues)
 - 📧 [Email Support](mailto:kevin.ceresa@swisstilab.ch)
+
