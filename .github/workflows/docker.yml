@@ -47,8 +47,10 @@ jobs:
             echo "This is a final release version"
           fi
           OPERATOR_VERSION=$(grep '^version = ' crates/openapi-k8s-operator/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "OPERATOR_VERSION=$OPERATOR_VERSION" >> $GITHUB_OUTPUT
           echo "Operator version from Cargo.toml: $OPERATOR_VERSION"
           SERVER_VERSION=$(grep '^version = ' crates/openapi-doc-server/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "SERVER_VERSION=$SERVER_VERSION" >> $GITHUB_OUTPUT
           echo "Operator version from Cargo.toml: $SERVER_VERSION"
 
       - name: Build and push operator image

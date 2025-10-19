@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
@@ -23,7 +23,7 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
-          
+
           # Check if it's a pre-release
           if [[ "$VERSION" == *"-"* ]]; then
             echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
@@ -32,7 +32,7 @@ jobs:
             echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
             echo "This is a final release version"
           fi
-          
+
           # Configure git
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
@@ -42,26 +42,26 @@ jobs:
           # Extract operator version from Cargo.toml
           OPERATOR_VERSION=$(grep '^version = ' crates/openapi-k8s-operator/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
           echo "Operator version from Cargo.toml: $OPERATOR_VERSION"
-          
+
           # Update Chart.yaml with the Git tag version for chart version
           # and operator version for app version
           sed -i "s/^version: .*/version: ${{ steps.prepare.outputs.VERSION }}/" helm/openapi-k8s-operator/Chart.yaml
           sed -i "s/^appVersion: .*/appVersion: \"$OPERATOR_VERSION\"/" helm/openapi-k8s-operator/Chart.yaml
-          
+
           echo "Updated Chart.yaml:"
           echo "  version: ${{ steps.prepare.outputs.VERSION }} (chart version)"
           echo "  appVersion: $OPERATOR_VERSION (operator version)"
-          
+
           # Commit the changes
           git add helm/openapi-k8s-operator/Chart.yaml
-          git commit -m "chore: update Chart.yaml version to ${{ steps.prepare.outputs.VERSION }}"
-          
+          git commit -m "chore: update Chart.yaml version to ${{ steps.prepare.outputs.VERSION }}" || true
+
           # Generate changelog
           curl -sSL "https://github.com/cocogitto/cocogitto/releases/latest/download/cocogitto-$(curl -s https://api.github.com/repos/cocogitto/cocogitto/releases/latest | jq -r '.tag_name')-x86_64-unknown-linux-musl.tar.gz" | tar -xz
           sudo mv x86_64-unknown-linux-musl/cog /usr/local/bin/cocogitto
           chmod +x /usr/local/bin/cocogitto
           cocogitto changelog > CHANGELOG.md
-          
+
           echo "Generated changelog:"
           head -10 CHANGELOG.md
 
@@ -69,15 +69,15 @@ jobs:
         run: |
           # Install Helm
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          
+
           # Install chart-releaser (like the action does)
           curl -L https://github.com/helm/chart-releaser/releases/download/v1.7.0/chart-releaser_1.7.0_linux_amd64.tar.gz | tar -xz
           chmod +x cr
           sudo mv cr /usr/local/bin/cr
-          
+
           # Package charts (like the action does)
           cr package helm/openapi-k8s-operator
-          
+
           # Clone gh-pages branch manually
           git clone --branch gh-pages --single-branch https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages || {
             echo "gh-pages branch doesn't exist, creating it..."
@@ -88,14 +88,14 @@ jobs:
             git remote add origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
             cd ..
           }
-          
+
           # Copy packages to gh-pages
           cp .cr-release-packages/*.tgz gh-pages/
-          
+
           # Update index manually using helm repo index
           cd gh-pages
           helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-          
+
           # Commit and push
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
