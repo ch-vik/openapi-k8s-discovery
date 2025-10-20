@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Build the application
     let app = Router::new()
         .route("/", get(handle_index))
-        .route("/api/:api_name", get(handle_api_request))
+        .route("/api/{api_name}", get(handle_api_request))
         .route("/health", get(handle_health))
         .layer(
             ServiceBuilder::new()
@@ -271,4 +271,3 @@ async fn fetch_openapi_spec(url: &str) -> Result<String, Box<dyn std::error::Err
         Err(format!("HTTP error: {}", response.status()).into())
     }
 }
-
