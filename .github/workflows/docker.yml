@@ -11,7 +11,7 @@ env:
   IMAGE_NAME_SERVER: ${{ github.repository }}-server
 
 jobs:
-  build-and-push:
+  docker_operator:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,9 +49,6 @@ jobs:
           OPERATOR_VERSION=$(grep '^version = ' crates/openapi-k8s-operator/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
           echo "OPERATOR_VERSION=$OPERATOR_VERSION" >> $GITHUB_OUTPUT
           echo "Operator version from Cargo.toml: $OPERATOR_VERSION"
-          SERVER_VERSION=$(grep '^version = ' crates/openapi-doc-server/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-          echo "SERVER_VERSION=$SERVER_VERSION" >> $GITHUB_OUTPUT
-          echo "Operator version from Cargo.toml: $SERVER_VERSION"
 
       - name: Build and push operator image
         uses: docker/build-push-action@v5
@@ -72,6 +69,44 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=operator
           cache-to: type=gha,mode=max,scope=operator
+  docker_docserver:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: tag-version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Tag version: $VERSION"
+
+          # Check if it's a pre-release
+          if [[ "$VERSION" == *"-"* ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
+            echo "This is a pre-release version"
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+            echo "This is a final release version"
+          fi
+          SERVER_VERSION=$(grep '^version = ' crates/openapi-doc-server/Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "SERVER_VERSION=$SERVER_VERSION" >> $GITHUB_OUTPUT
+          echo "Operator version from Cargo.toml: $SERVER_VERSION"
 
       - name: Build and push server image
         uses: docker/build-push-action@v5
