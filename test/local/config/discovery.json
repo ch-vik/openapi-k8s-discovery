@@ -1,0 +1,39 @@
+{
+  "apis": [
+    {
+      "id": "test-api-1",
+      "name": "User Service API",
+      "namespace": "default",
+      "service_name": "user-service",
+      "url": "http://user-service:8080/openapi.json",
+      "description": "User management service API",
+      "last_updated": "2024-01-15T10:00:00Z",
+      "available": true,
+      "spec": ""
+    },
+    {
+      "id": "test-api-2",
+      "name": "Product Service API",
+      "namespace": "default",
+      "service_name": "product-service",
+      "url": "http://product-service:8080/openapi.json",
+      "description": "Product catalog service API",
+      "last_updated": "2024-01-15T10:00:00Z",
+      "available": true,
+      "spec": ""
+    },
+    {
+      "id": "test-api-3",
+      "name": "Order Service API",
+      "namespace": "default",
+      "service_name": "order-service",
+      "url": "http://order-service:8080/openapi.json",
+      "description": "Order processing service API",
+      "last_updated": "2024-01-15T10:00:00Z",
+      "available": true,
+      "spec": ""
+    }
+  ],
+  "last_updated": "2024-01-15T10:00:00Z"
+}
+

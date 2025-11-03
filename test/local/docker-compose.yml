@@ -1,0 +1,102 @@
+services:
+  # Mock API services that serve OpenAPI specs
+  user-service:
+    image: nginx:alpine
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./specs/user-service.json:/usr/share/nginx/html/openapi.json:ro
+    command: >
+      sh -c "echo 'server {
+        listen 8080;
+        location /openapi.json {
+          add_header Content-Type application/json;
+          root /usr/share/nginx/html;
+        }
+        location /health {
+          return 200 \"OK\\n\";
+          add_header Content-Type text/plain;
+        }
+      }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  product-service:
+    image: nginx:alpine
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./specs/product-service.json:/usr/share/nginx/html/openapi.json:ro
+    command: >
+      sh -c "echo 'server {
+        listen 8080;
+        location /openapi.json {
+          add_header Content-Type application/json;
+          root /usr/share/nginx/html;
+        }
+        location /health {
+          return 200 \"OK\\n\";
+          add_header Content-Type text/plain;
+        }
+      }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  order-service:
+    image: nginx:alpine
+    ports:
+      - "8083:8080"
+    volumes:
+      - ./specs/order-service.json:/usr/share/nginx/html/openapi.json:ro
+    command: >
+      sh -c "echo 'server {
+        listen 8080;
+        location /openapi.json {
+          add_header Content-Type application/json;
+          root /usr/share/nginx/html;
+        }
+        location /health {
+          return 200 \"OK\\n\";
+          add_header Content-Type text/plain;
+        }
+      }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  # OpenAPI documentation server
+  openapi-doc-server:
+    build:
+      context: ../..
+      dockerfile: crates/openapi-doc-server/Dockerfile
+      args:
+        FEATURES: scalar,redoc
+    ports:
+      - "8080:8080"
+    environment:
+      # Frontend configuration
+      - ENABLED_FRONTENDS=scalar,redoc
+      - DEFAULT_FRONTEND=scalar
+
+      # Scalar configuration
+      - SCALAR_THEME=purple
+      - SCALAR_LAYOUT=modern
+      - SCALAR_DARK_MODE=false
+      - SCALAR_SHOW_SIDEBAR=true
+      - SCALAR_EXPAND_ALL_RESPONSES=true
+      - SCALAR_EXPAND_ALL_MODEL_SECTIONS=true
+
+      # Redoc configuration
+      - REDOC_EXPAND_RESPONSES=200,201,400,401,403,404
+      - REDOC_REQUIRED_PROPS_FIRST=true
+      - REDOC_SHOW_API_SELECTOR=true
+
+      # Path configuration
+      - CACHE_DIR=/tmp/openapi-cache
+      - DISCOVERY_PATH=/etc/config/discovery.json
+
+      # Logging
+      - RUST_LOG=info
+    volumes:
+      - ./config/discovery.json:/etc/config/discovery.json:ro
+      - openapi-cache:/tmp/openapi-cache
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+
+volumes:
+  openapi-cache:
