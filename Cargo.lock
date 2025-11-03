@@ -1323,7 +1323,7 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "openapi-common"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1333,7 +1333,7 @@ dependencies = [
 
 [[package]]
 name = "openapi-doc-server"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "askama",
  "axum",

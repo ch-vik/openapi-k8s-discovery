@@ -55,7 +55,7 @@ openapiServer:
   enabled: true
   image:
     repository: ghcr.io/ch-vik/openapi-k8s-discovery-server
-    tag: "0.1.0"
+    tag: "0.2.0"
     pullPolicy: IfNotPresent
   config:
     enabledFrontends: "scalar,redoc"
@@ -133,7 +133,7 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 |-----------|-------------|---------|
 | `openapiServer.enabled` | Enable OpenAPI server deployment | `true` |
 | `openapiServer.image.repository` | OpenAPI server image repository | `ghcr.io/ch-vik/openapi-k8s-discovery-server` |
-| `openapiServer.image.tag` | OpenAPI server image tag | `0.1.0` |
+| `openapiServer.image.tag` | OpenAPI server image tag | `0.2.0` |
 | `openapiServer.image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `openapiServer.deployment.replicaCount` | Number of replicas | `1` |
 | `openapiServer.service.type` | Service type | `ClusterIP` |
