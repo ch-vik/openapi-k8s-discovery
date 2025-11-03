@@ -1,0 +1,4 @@
+# Cache directory if running locally
+cache/
+*.log
+
