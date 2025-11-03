@@ -148,12 +148,12 @@ fn sanitize_filename(name: &str) -> String {
 
 fn get_spec_file_path(cache_dir: &StdPath, api_name: &str) -> PathBuf {
     let sanitized = sanitize_filename(api_name);
-    cache_dir.join(format!("{}.json", sanitized))
+    cache_dir.join(format!("{sanitized}.json"))
 }
 
 fn get_metadata_file_path(cache_dir: &StdPath, api_name: &str) -> PathBuf {
     let sanitized = sanitize_filename(api_name);
-    cache_dir.join(format!("{}.meta.json", sanitized))
+    cache_dir.join(format!("{sanitized}.meta.json"))
 }
 
 #[tokio::main]
@@ -212,7 +212,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if state.frontend_manager.get_frontend("scalar").is_some() {
         app = app.route("/scalar", get(handle_scalar));
     }
-    
+
     if state.frontend_manager.get_frontend("redoc").is_some() {
         app = app.route("/redoc", get(handle_redoc));
     }
@@ -236,9 +236,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 async fn handle_default(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
     match state.frontend_manager.get_default_frontend() {
-        Some(frontend) => {
-            generate_frontend_html(frontend, &state.cache_dir).await
-        }
+        Some(frontend) => generate_frontend_html(frontend, &state.cache_dir).await,
         None => {
             tracing::error!("No default frontend configured");
             render_error_template().await
@@ -248,18 +246,16 @@ async fn handle_default(State(state): State<AppState>) -> Result<Html<String>, S
 
 async fn render_error_template() -> Result<Html<String>, StatusCode> {
     use askama::Template;
-    
+
     #[derive(askama::Template)]
     #[template(path = "error.html")]
     struct ErrorTemplate;
-    
+
     let template = ErrorTemplate;
-    template.render()
-        .map(Html)
-        .map_err(|e| {
-            tracing::error!("Failed to render error template: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+    template.render().map(Html).map_err(|e| {
+        tracing::error!("Failed to render error template: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })
 }
 
 async fn handle_scalar(State(state): State<AppState>) -> Result<Html<String>, StatusCode> {
@@ -284,7 +280,7 @@ async fn handle_redoc(State(state): State<AppState>) -> Result<Html<String>, Sta
 
 async fn generate_frontend_html(
     frontend: Arc<dyn DocFrontend>,
-    cache_dir: &PathBuf,
+    cache_dir: &StdPath,
 ) -> Result<Html<String>, StatusCode> {
     // Load all API metadata from cache directory
     let apis = load_apis_from_cache(cache_dir).await;
@@ -297,7 +293,7 @@ async fn generate_frontend_html(
         .enumerate()
         .map(|(i, api)| ApiInfo {
             name: api.name.clone(),
-            slug: format!("api-{}", i),
+            slug: format!("api-{i}"),
             spec_url: format!("/specs/{}", urlencoding::encode(&api.name)),
             description: api.description.clone(),
         })
@@ -323,7 +319,7 @@ async fn handle_api_request(
 
     // Load spec from file cache
     let spec_path = get_spec_file_path(&state.cache_dir, decoded_name_str);
-    
+
     match fs::read_to_string(&spec_path) {
         Ok(spec_content) => {
             tracing::info!("Serving cached OpenAPI spec for API: {}", decoded_name);
@@ -409,15 +405,15 @@ async fn refresh_api_cache(
                 match fetch_openapi_spec(&api.url).await {
                     Ok(spec) => {
                         tracing::info!("Successfully fetched OpenAPI spec for API: {}", api.name);
-                        
+
                         // Save spec to file
                         let spec_path = get_spec_file_path(&state.cache_dir, &api.name);
                         fs::write(&spec_path, &spec)?;
-                        
+
                         // Update API metadata
                         api.available = true;
                         api.spec = spec; // Keep spec in metadata for reference, but it's also in the file
-                        
+
                         // Save metadata to file
                         let metadata_path = get_metadata_file_path(&state.cache_dir, &api.name);
                         let api_json = serde_json::to_string(&api)?;
@@ -425,7 +421,7 @@ async fn refresh_api_cache(
                     }
                     Err(e) => {
                         tracing::warn!("Failed to fetch OpenAPI spec for API {}: {}", api.name, e);
-                        
+
                         // Store a dummy spec for failed APIs
                         let default_spec = serde_json::json!({
                             "openapi": "3.0.0",
@@ -437,14 +433,14 @@ async fn refresh_api_cache(
                             "paths": {}
                         })
                         .to_string();
-                        
+
                         // Save dummy spec to file
                         let spec_path = get_spec_file_path(&state.cache_dir, &api.name);
                         fs::write(&spec_path, &default_spec)?;
-                        
+
                         api.available = false;
                         api.spec = default_spec;
-                        
+
                         // Save metadata to file
                         let metadata_path = get_metadata_file_path(&state.cache_dir, &api.name);
                         let api_json = serde_json::to_string(&api)?;
