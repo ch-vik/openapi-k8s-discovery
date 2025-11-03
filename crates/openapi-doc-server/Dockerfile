@@ -14,9 +14,14 @@ WORKDIR /app
 # Copy workspace files
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ ./crates/
+# Copy templates directory (needed for Askama)
+COPY crates/openapi-doc-server/templates/ ./crates/openapi-doc-server/templates/
+
+# Build arguments for features
+ARG FEATURES=scalar,redoc
 
 # Build the server
-RUN cargo build --release --package openapi-doc-server
+RUN cargo build --release --package openapi-doc-server --features ${FEATURES}
 
 # Runtime stage
 FROM debian:bookworm-slim
