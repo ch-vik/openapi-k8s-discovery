@@ -1,6 +1,6 @@
 # OpenAPI K8s Operator
 
-A production-ready Kubernetes operator written in Rust that automatically discovers services with OpenAPI documentation and provides a centralized Scalar UI interface for browsing all discovered APIs.
+A production-ready Kubernetes operator written in Rust that automatically discovers services with OpenAPI documentation and provides a centralized documentation interface for browsing all discovered APIs. Supports multiple frontends (Scalar, Redoc) with flexible configuration options.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-2024-orange.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/)
@@ -9,25 +9,29 @@ A production-ready Kubernetes operator written in Rust that automatically discov
 ## Features
 
 - **Automatic Discovery**: Watches for Kubernetes services with API documentation annotations
-- **Centralized UI**: Provides a single Scalar UI interface for all discovered APIs with dropdown selector
+- **Multi-Frontend Support**: Choose between Scalar and Redoc frontends, or enable both
+- **Flexible Configuration**: All settings configurable via environment variables
+- **File-Based Caching**: API specs cached to disk for persistence and better performance
+- **Centralized UI**: Provides a single interface for all discovered APIs with dropdown selector
 - **Health Monitoring**: Continuously monitors API availability and updates status
 - **Production Ready**: Built with proper error handling, reconciliation, and RBAC
 - **Standard Annotations**: Uses standard Kubernetes annotation patterns
 - **Modern Rust**: Built with Rust 2024 edition and latest stable dependencies
 - **Workspace Architecture**: Organized as a Cargo workspace with shared components
-- **Scalar UI**: Beautiful, modern API documentation interface with first-class OpenAPI support
+- **Feature Flags**: Compile only the frontends you need to reduce binary size
+- **Template-Based Rendering**: Server-side HTML generation with type-safe templates (Askama)
 
 ## Architecture
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   API Services  │    │  Rust Operator   │    │  Scalar UI      │
-│                 │    │                  │    │                 │
-│ - Service A     │───▶│ - Watches        │───▶│ - Centralized   │
-│   (annotated)   │    │   Services       │    │   Interface     │
-│ - Service B     │    │ - Updates        │    │ - Multi-API     │
-│   (annotated)   │    │   ConfigMap      │    │   Support       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────────┐
+│   API Services  │    │  Rust Operator   │    │  Documentation Server   │
+│                 │    │                  │    │                         │
+│ - Service A     │──▶│ - Watches        │──▶│ - Scalar UI (/scalar)   │
+│   (annotated)   │    │   Services       │    │ - Redoc UI (/redoc)     │
+│ - Service B     │    │ - Updates        │    │ - Multi-API Support     │
+│   (annotated)   │    │   ConfigMap      │    │ - File-Based Cache      │
+└─────────────────┘    └──────────────────┘    └─────────────────────────┘
 ```
 
 ## Quick Start
@@ -67,12 +71,17 @@ helm install openapi-operator ./helm/openapi-k8s-discovery \
 ### Access the UI
 
 ```bash
-# Port forward to access the Scalar UI
+# Port forward to access the documentation server
 kubectl port-forward service/openapi-server 3000:80
 
 # Open in browser
+# Default frontend: http://localhost:3000/
+# Scalar UI (if enabled): http://localhost:3000/scalar
+# Redoc UI (if enabled): http://localhost:3000/redoc
 open http://localhost:3000
 ```
+
+The default frontend is configurable via the `DEFAULT_FRONTEND` environment variable. Both Scalar and Redoc can be enabled simultaneously and accessed via their respective paths.
 
 ## Usage
 
@@ -124,12 +133,58 @@ helm install openapi-operator openapi-k8s-discovery/openapi-k8s-discovery \
 
 #### Environment Variables
 
+##### Operator Environment Variables
+
 | Variable              | Default               | Description                                                                 |
 | --------------------- | --------------------- | --------------------------------------------------------------------------- |
 | `WATCH_NAMESPACES`    | `""`                  | Namespaces to watch (`""` = current, `"all"` = all, `"ns1,ns2"` = specific) |
 | `DISCOVERY_NAMESPACE` | `"default"`           | Namespace where ConfigMap will be created                                   |
 | `DISCOVERY_CONFIGMAP` | `"openapi-discovery"` | Name of the discovery ConfigMap                                             |
 | `RUST_LOG`            | `"info"`              | Logging level                                                               |
+
+##### Documentation Server Environment Variables
+
+The documentation server supports multiple frontends and extensive configuration options.
+
+**Frontend Selection:**
+- `ENABLED_FRONTENDS`: Comma-separated list (e.g., `scalar,redoc` or `scalar`)
+- `DEFAULT_FRONTEND`: Default frontend at `/` (e.g., `scalar` or `redoc`)
+
+**Scalar Frontend Options:**
+- `SCALAR_THEME`: Theme name (default: `purple`) - Options: `default`, `alternate`, `moon`, `purple`, `solarized`, `bluePlanet`, `saturn`, `kepler`, `mars`, `deepSpace`, `laserwave`, `none`
+- `SCALAR_LAYOUT`: Layout style (default: `modern`) - Options: `modern` or `classic`
+- `SCALAR_DARK_MODE`: Enable dark mode (default: `false`)
+- `SCALAR_SHOW_SIDEBAR`: Show sidebar (default: `true`)
+- `SCALAR_EXPAND_ALL_RESPONSES`: Expand all responses by default (default: `true`)
+- `SCALAR_EXPAND_ALL_MODEL_SECTIONS`: Expand model sections by default (default: `false`)
+- `SCALAR_HIDE_DOWNLOAD_BUTTON`: Hide download button (default: `false`)
+
+**Redoc Frontend Options:**
+- `REDOC_EXPAND_RESPONSES`: Comma-separated response codes to expand (default: `200,201,400,401,403,404`)
+- `REDOC_REQUIRED_PROPS_FIRST`: Show required properties first (default: `true`)
+- `REDOC_SHOW_API_SELECTOR`: Show API selector dropdown (default: `true`)
+
+**Path Configuration:**
+- `CACHE_DIR`: Cache directory for API specs (default: `/tmp/openapi-cache`)
+- `DISCOVERY_PATH`: Path to discovery.json file (default: `/etc/config/discovery.json`)
+
+**Example Configuration:**
+```yaml
+# In Helm values.yaml or deployment
+env:
+  - name: ENABLED_FRONTENDS
+    value: "scalar,redoc"
+  - name: DEFAULT_FRONTEND
+    value: "scalar"
+  - name: SCALAR_THEME
+    value: "bluePlanet"
+  - name: SCALAR_DARK_MODE
+    value: "true"
+  - name: REDOC_EXPAND_RESPONSES
+    value: "200,201,400,500"
+  - name: CACHE_DIR
+    value: "/var/cache/openapi"
+```
 
 ### Annotations Reference
 
@@ -200,16 +255,25 @@ openapi-k8s-discovery/
 │   ├── openapi-common/           # Shared library
 │   │   ├── Cargo.toml
 │   │   └── src/lib.rs
-│   ├── openapi-k8s-discovery/     # Kubernetes operator
+│   ├── openapi-k8s-operator/     # Kubernetes operator
 │   │   ├── Cargo.toml
 │   │   ├── Dockerfile
 │   │   └── src/
-│   │       ├── master.rs
+│   │       ├── main.rs
 │   │       └── error.rs
-│   └── openapi-doc-server/       # Scalar UI server
+│   └── openapi-doc-server/       # Documentation server (Scalar/Redoc)
 │       ├── Cargo.toml
 │       ├── Dockerfile
-│       └── src/master.rs
+│       ├── src/
+│       │   ├── main.rs
+│       │   ├── config.rs          # Configuration management
+│       │   ├── frontend.rs        # Frontend trait definitions
+│       │   └── frontends/         # Frontend implementations
+│       │       ├── scalar/        # Scalar frontend
+│       │       └── redoc/         # Redoc frontend
+│       └── templates/             # HTML templates (Askama)
+│           ├── error.html
+│           └── redoc/
 ├── examples/                     # Example service definitions
 ├── helm/                        # Helm chart for deployment
 └── README.md                    # This documentation
@@ -231,11 +295,14 @@ openapi-k8s-discovery/
 git clone https://github.com/ch-vik/openapi-k8s-discovery.git
 cd openapi-k8s-discovery
 
-# Build all crates
+# Build all crates (default: includes Scalar frontend)
 cargo build --workspace
 
+# Build with all frontends
+cargo build --workspace --features scalar,redoc
+
 # Build with release optimizations
-cargo build --release --workspace
+cargo build --release --workspace --features scalar,redoc
 
 # Run tests
 cargo test --workspace
@@ -245,10 +312,22 @@ cargo test --workspace
 
 ```bash
 # Build operator image
-docker build -f crates/openapi-k8s-discovery/Dockerfile -t ghcr.io/ch-vik/openapi-k8s-discovery:latest .
+docker build -f crates/openapi-k8s-operator/Dockerfile -t ghcr.io/ch-vik/openapi-k8s-operator:latest .
 
-# Build server image
-docker build -f crates/openapi-doc-server/Dockerfile -t ghcr.io/ch-vik/openapi-doc-server:latest .
+# Build server image (with all frontends)
+docker build -f crates/openapi-doc-server/Dockerfile \
+  --build-arg FEATURES=scalar,redoc \
+  -t ghcr.io/ch-vik/openapi-doc-server:latest .
+
+# Build server image (Scalar only - smaller binary)
+docker build -f crates/openapi-doc-server/Dockerfile \
+  --build-arg FEATURES=scalar \
+  -t ghcr.io/ch-vik/openapi-doc-server:scalar-only .
+
+# Build server image (Redoc only)
+docker build -f crates/openapi-doc-server/Dockerfile \
+  --build-arg FEATURES=redoc \
+  -t ghcr.io/ch-vik/openapi-doc-server:redoc-only .
 ```
 
 ### Running Locally
@@ -258,11 +337,20 @@ docker build -f crates/openapi-doc-server/Dockerfile -t ghcr.io/ch-vik/openapi-d
 kubectl config use-context your-cluster
 
 # Run the operator
-cargo run -p openapi-k8s-discovery
+cargo run -p openapi-k8s-operator
 
 # Run the server (for testing)
-cargo run -p openapi-doc-server
+# With all features
+cargo run -p openapi-doc-server --features scalar,redoc
+
+# With only Scalar
+cargo run -p openapi-doc-server --features scalar
+
+# With only Redoc
+cargo run -p openapi-doc-server --no-default-features --features redoc
 ```
+
+**Local Testing**: See `test/local/README.md` for a complete Docker Compose setup with mock APIs and all configuration examples.
 
 ## Troubleshooting
 
@@ -286,7 +374,7 @@ kubectl get configmap openapi-discovery -o yaml
 kubectl get configmap openapi-discovery -o jsonpath='{.data.discovery\.json}' | jq .
 ```
 
-### Check Scalar UI Server
+### Check Documentation Server
 
 ```bash
 # Check server status
@@ -297,6 +385,10 @@ kubectl logs -l app.kubernetes.io/component=openapi-server
 
 # Port forward for local testing
 kubectl port-forward service/openapi-server 3000:80
+
+# Test endpoints
+curl http://localhost:3000/health
+curl http://localhost:3000/specs/{api-name}
 ```
 
 ### Common Issues
@@ -308,6 +400,25 @@ kubectl port-forward service/openapi-server 3000:80
 3. **OpenAPI specs not loading**: Check that the service is accessible and the path annotation is correct.
 
 4. **Port forwarding issues**: Ensure the service is running and the port mapping is correct.
+
+5. **Frontend not available**: Verify the frontend is enabled via `ENABLED_FRONTENDS` and compiled with the corresponding feature flag.
+
+6. **No APIs showing**: Check that the discovery.json file is being read correctly and APIs are being cached. Check logs for cache loading errors.
+
+## Local Testing
+
+For local development and testing, see the [`test/local/`](test/local/) directory for a complete Docker Compose setup with:
+- Mock API services serving OpenAPI specs
+- Pre-configured discovery.json
+- All environment variable examples
+- Step-by-step testing guide
+
+Quick start:
+```bash
+cd test/local
+docker-compose up -d
+# Access at http://localhost:8080
+```
 
 ## Security Considerations
 
