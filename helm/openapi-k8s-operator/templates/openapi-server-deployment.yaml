@@ -51,13 +51,51 @@ spec:
           protocol: TCP
         env:
         - name: RUST_LOG
-          value: "info"
+          value: {{ .Values.openapiServer.config.rustLog | default "info" | quote }}
         - name: PORT
           value: "8080"
         - name: DISCOVERY_NAMESPACE
           value: {{ .Values.operator.config.discoveryNamespace | default .Release.Namespace | quote }}
         - name: DISCOVERY_CONFIGMAP
           value: {{ .Values.operator.config.discoveryConfigMap | quote }}
+        # Frontend configuration
+        - name: ENABLED_FRONTENDS
+          value: {{ .Values.openapiServer.config.enabledFrontends | default "scalar" | quote }}
+        {{- if .Values.openapiServer.config.defaultFrontend }}
+        - name: DEFAULT_FRONTEND
+          value: {{ .Values.openapiServer.config.defaultFrontend | quote }}
+        {{- end }}
+        # Path configuration
+        - name: CACHE_DIR
+          value: {{ .Values.openapiServer.config.cacheDir | default "/tmp/openapi-cache" | quote }}
+        - name: DISCOVERY_PATH
+          value: {{ .Values.openapiServer.config.discoveryPath | default "/etc/config/discovery.json" | quote }}
+        # Scalar frontend options
+        {{- with .Values.openapiServer.config.scalar }}
+        - name: SCALAR_THEME
+          value: {{ .theme | default "purple" | quote }}
+        - name: SCALAR_LAYOUT
+          value: {{ .layout | default "modern" | quote }}
+        - name: SCALAR_DARK_MODE
+          value: {{ .darkMode | default false | quote }}
+        - name: SCALAR_SHOW_SIDEBAR
+          value: {{ .showSidebar | default true | quote }}
+        - name: SCALAR_EXPAND_ALL_RESPONSES
+          value: {{ .expandAllResponses | default true | quote }}
+        - name: SCALAR_EXPAND_ALL_MODEL_SECTIONS
+          value: {{ .expandAllModelSections | default false | quote }}
+        - name: SCALAR_HIDE_DOWNLOAD_BUTTON
+          value: {{ .hideDownloadButton | default false | quote }}
+        {{- end }}
+        # Redoc frontend options
+        {{- with .Values.openapiServer.config.redoc }}
+        - name: REDOC_EXPAND_RESPONSES
+          value: {{ .expandResponses | default "200,201,400,401,403,404" | quote }}
+        - name: REDOC_REQUIRED_PROPS_FIRST
+          value: {{ .requiredPropsFirst | default true | quote }}
+        - name: REDOC_SHOW_API_SELECTOR
+          value: {{ .showApiSelector | default true | quote }}
+        {{- end }}
         {{- with .Values.openapiServer.extraEnv }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

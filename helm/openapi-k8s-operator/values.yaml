@@ -133,6 +133,35 @@ openapiServer:
       cpu: 50m
       memory: 64Mi
 
+  # Server configuration
+  config:
+    # Frontend selection
+    enabledFrontends: "scalar,redoc"  # Comma-separated list: "scalar", "redoc", or "scalar,redoc"
+    defaultFrontend: ""  # Default frontend at / (empty = first enabled frontend)
+    
+    # Path configuration
+    cacheDir: "/tmp/openapi-cache"  # Directory for caching API specs
+    discoveryPath: "/etc/config/discovery.json"  # Path to discovery.json file
+    
+    # Scalar frontend options
+    scalar:
+      theme: "purple"  # Options: default, alternate, moon, purple, solarized, bluePlanet, saturn, kepler, mars, deepSpace, laserwave, none
+      layout: "modern"  # Options: modern, classic
+      darkMode: false
+      showSidebar: true
+      expandAllResponses: true
+      expandAllModelSections: false
+      hideDownloadButton: false
+    
+    # Redoc frontend options
+    redoc:
+      expandResponses: "200,201,400,401,403,404"  # Comma-separated response codes to expand
+      requiredPropsFirst: true
+      showApiSelector: true
+    
+    # Logging
+    rustLog: "info"  # Options: trace, debug, info, warn, error
+
   # Additional environment variables for customization
   extraEnv: []
   # Example:

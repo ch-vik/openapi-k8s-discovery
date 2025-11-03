@@ -57,6 +57,20 @@ openapiServer:
     repository: ghcr.io/ch-vik/openapi-k8s-discovery-server
     tag: "0.1.0"
     pullPolicy: IfNotPresent
+  config:
+    enabledFrontends: "scalar,redoc"
+    defaultFrontend: "scalar"
+    cacheDir: "/tmp/openapi-cache"
+    discoveryPath: "/etc/config/discovery.json"
+    rustLog: "info"
+    scalar:
+      theme: "bluePlanet"
+      layout: "modern"
+      darkMode: true
+      expandAllModelSections: false
+    redoc:
+      expandResponses: "200,201,400,500"
+      showApiSelector: true
   service:
     type: ClusterIP
     port: 80
@@ -76,9 +90,6 @@ openapiServer:
     requests:
       cpu: 50m
       memory: 64Mi
-  extraEnv:
-    - name: LOG_LEVEL
-      value: "debug"
 
 namespace:
   create: true
@@ -136,6 +147,36 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 | `openapiServer.resources.requests.cpu` | CPU request | `50m` |
 | `openapiServer.resources.requests.memory` | Memory request | `64Mi` |
 | `openapiServer.extraEnv` | Additional environment variables for OpenAPI server | `[]` |
+
+#### Frontend Configuration
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `openapiServer.config.enabledFrontends` | Comma-separated list of frontends to enable | `"scalar,redoc"` |
+| `openapiServer.config.defaultFrontend` | Default frontend at `/` (empty = first enabled) | `""` |
+| `openapiServer.config.cacheDir` | Directory for caching API specs | `"/tmp/openapi-cache"` |
+| `openapiServer.config.discoveryPath` | Path to discovery.json file | `"/etc/config/discovery.json"` |
+| `openapiServer.config.rustLog` | Logging level (trace, debug, info, warn, error) | `"info"` |
+
+#### Scalar Frontend Options
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `openapiServer.config.scalar.theme` | Theme name | `"purple"` |
+| `openapiServer.config.scalar.layout` | Layout style (modern, classic) | `"modern"` |
+| `openapiServer.config.scalar.darkMode` | Enable dark mode | `false` |
+| `openapiServer.config.scalar.showSidebar` | Show sidebar navigation | `true` |
+| `openapiServer.config.scalar.expandAllResponses` | Expand all responses by default | `true` |
+| `openapiServer.config.scalar.expandAllModelSections` | Expand all model sections by default | `false` |
+| `openapiServer.config.scalar.hideDownloadButton` | Hide download button | `false` |
+
+#### Redoc Frontend Options
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `openapiServer.config.redoc.expandResponses` | Comma-separated response codes to expand | `"200,201,400,401,403,404"` |
+| `openapiServer.config.redoc.requiredPropsFirst` | Show required properties first | `true` |
+| `openapiServer.config.redoc.showApiSelector` | Show API selector dropdown | `true` |
 
 ### Global Configuration
 
