@@ -62,10 +62,7 @@ impl DocFrontend for RedocFrontend {
 
         template.render().unwrap_or_else(|e| {
             tracing::error!("Failed to render Redoc template: {}", e);
-            format!(
-                "<html><body><h1>Template Error</h1><p>{}</p></body></html>",
-                e
-            )
+            format!("<html><body><h1>Template Error</h1><p>{e}</p></body></html>",)
         })
     }
 
@@ -73,10 +70,7 @@ impl DocFrontend for RedocFrontend {
         let template = RedocEmptyTemplate;
         template.render().unwrap_or_else(|e| {
             tracing::error!("Failed to render Redoc empty template: {}", e);
-            format!(
-                "<html><body><h1>Template Error</h1><p>{}</p></body></html>",
-                e
-            )
+            format!("<html><body><h1>Template Error</h1><p>{e}</p></body></html>",)
         })
     }
 }
@@ -86,4 +80,3 @@ impl Default for RedocFrontend {
         Self::new(RedocConfig::default())
     }
 }
-
