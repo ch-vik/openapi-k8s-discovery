@@ -20,6 +20,13 @@ use openapi_common::{
     spec_utils, namespace_utils
 };
 
+/// Deterministic key for a discovery entry (namespace + service name). Used for dedup and removal.
+macro_rules! entry_key {
+    ($ns:expr, $name:expr) => {
+        format!("{}-{}", $ns, $name)
+    };
+}
+
 #[derive(Clone)]
 struct ContextData {
     discovery: Api<ConfigMap>,
@@ -239,7 +246,7 @@ async fn reconcile(
     let available = check_api_availability(&ctx.http_client, &url).await;
 
     // Create a deterministic ID based on service name and namespace
-    let entry_id = format!("{}-{}", namespace, service_name);
+    let entry_id = entry_key!(&namespace, &service_name);
     
     // Fetch the actual OpenAPI spec
     let spec = if available {
@@ -346,7 +353,7 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiDocEntry) -
         // Deduplicate APIs and keep most recent entries
         let mut unique_apis: std::collections::HashMap<String, ApiDocEntry> = std::collections::HashMap::new();
         for api in apis {
-            let key = format!("{}-{}", api.namespace, api.service_name);
+            let key = entry_key!(&api.namespace, &api.service_name);
             if let Some(existing) = unique_apis.get(&key) {
                 if api.last_updated > existing.last_updated {
                     unique_apis.insert(key, api);
@@ -356,7 +363,7 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiDocEntry) -
             }
         }
 
-        let key = format!("{}-{}", entry.namespace, entry.service_name);
+        let key = entry_key!(&entry.namespace, &entry.service_name);
         unique_apis.insert(key, entry.clone());
         let apis: Vec<ApiDocEntry> = unique_apis.into_values().collect();
 
