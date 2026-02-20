@@ -212,9 +212,10 @@ async fn reconcile(
 
     if !enabled {
         info!(
-            "Service {} does not have API documentation enabled, skipping",
+            "Service {} does not have API documentation enabled, removing from discovery",
             service_name
         );
+        remove_entry_from_discovery_configmap(ctx.clone(), &namespace, &service_name).await?;
         return Ok(Action::requeue(Duration::from_secs(300)));
     }
 
@@ -307,6 +308,71 @@ async fn fetch_openapi_spec(url: &str) -> Result<String, Box<dyn std::error::Err
     }
 }
 
+async fn remove_entry_from_discovery_configmap(
+    ctx: Arc<ContextData>,
+    namespace: &str,
+    service_name: &str,
+) -> Result<(), AppError> {
+    let configmap_name = &ctx.discovery_configmap;
+    let configmap_namespace = &ctx.discovery_namespace;
+    let key = entry_key!(namespace, service_name);
+
+    let discovery_api: Api<ConfigMap> =
+        Api::namespaced(ctx.discovery.clone().into_client(), configmap_namespace);
+
+    let existing_configmap = match discovery_api.get_opt(configmap_name).await {
+        Ok(Some(cm)) => cm,
+        Ok(None) | Err(_) => return Ok(()),
+    };
+
+    let apis = existing_configmap
+        .data
+        .as_ref()
+        .and_then(|d| d.get("discovery.json"))
+        .and_then(|j| serde_json::from_str::<DiscoveryConfig>(j).ok())
+        .map(|c| c.apis)
+        .unwrap_or_default();
+
+    let apis: Vec<ApiDocEntry> = apis
+        .into_iter()
+        .filter(|api| entry_key!(&api.namespace, &api.service_name) != key)
+        .collect();
+
+    let discovery_config = DiscoveryConfig {
+        apis,
+        last_updated: Utc::now(),
+    };
+    let discovery_json = serde_json::to_string_pretty(&discovery_config)
+        .map_err(|e| AppError::Serde(e))?;
+
+    let configmap = ConfigMap {
+        metadata: kube::core::ObjectMeta {
+            name: Some(configmap_name.to_string()),
+            namespace: Some(configmap_namespace.to_string()),
+            labels: Some(BTreeMap::from([
+                ("app.kubernetes.io/name".to_string(), "openapi-discovery".to_string()),
+                ("app.kubernetes.io/component".to_string(), "discovery".to_string()),
+            ])),
+            ..Default::default()
+        },
+        data: Some(BTreeMap::from([(
+            "discovery.json".to_string(),
+            discovery_json,
+        )])),
+        ..Default::default()
+    };
+
+    let patch_params = PatchParams::apply("openapi-k8s-operator");
+    discovery_api
+        .patch(configmap_name, &patch_params, &Patch::Apply(configmap))
+        .await
+        .map_err(AppError::Kube)?;
+    info!(
+        "Removed service {}/{} from discovery ConfigMap",
+        namespace, service_name
+    );
+    Ok(())
+}
 
 async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiDocEntry) -> Result<(), AppError> {
     const MAX_RETRIES: u32 = 5;
@@ -516,15 +582,40 @@ async fn initialize_discovery_configmap(ctx: &ContextData) -> Result<(), AppErro
 fn error_policy(
     service: Arc<Service>,
     err: &AppError,
-    _ctx: Arc<ContextData>,
+    ctx: Arc<ContextData>,
 ) -> Action {
+    let namespace = service.namespace().unwrap_or_default();
+    let name = service.name_any();
+
+    if let AppError::Kube(kube_err) = err {
+        if let kube::Error::Api(resp) = kube_err {
+            if resp.code == 404 {
+                info!(
+                    "Service {}/{} not found (deleted), removing from discovery",
+                    namespace, name
+                );
+                let ctx_clone = ctx.clone();
+                let ns = namespace.clone();
+                let name_clone = name.clone();
+                tokio::spawn(async move {
+                    if let Err(e) =
+                        remove_entry_from_discovery_configmap(ctx_clone, &ns, &name_clone).await
+                    {
+                        error!("Failed to remove deleted service from discovery: {}", e);
+                    }
+                });
+                return Action::requeue(Duration::from_secs(300));
+            }
+        }
+    }
+
     error!(
         "Reconcile error for service {}: {}",
-        service.name_any(),
+        name,
         err
     );
-    
+
     let requeue_delay = Duration::from_secs(30);
-    warn!("Requeuing service {} in {:?}", service.name_any(), requeue_delay);
+    warn!("Requeuing service {} in {:?}", name, requeue_delay);
     Action::requeue(requeue_delay)
 }
