@@ -2,8 +2,8 @@ apiVersion: v2
 name: openapi-k8s-operator
 description: A Kubernetes operator for aggregating OpenAPI documentation from multiple services
 type: application
-version: 0.2.0
-appVersion: "0.1.2"
+version: 0.2.1-pre0
+appVersion: "0.2.1-pre0"
 keywords:
   - kubernetes
   - operator
