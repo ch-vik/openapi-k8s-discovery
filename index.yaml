@@ -2,8 +2,31 @@ apiVersion: v1
 entries:
   openapi-k8s-operator:
   - apiVersion: v2
+    appVersion: 0.2.1-pre0
+    created: "2026-02-20T15:14:34.164423459Z"
+    description: A Kubernetes operator for aggregating OpenAPI documentation from
+      multiple services
+    digest: d0ebedf52099b847d8f6c977ca43fd8ab8f031d4ae234bd2de944850b88770b3
+    home: https://github.com/ch-vik/openapi-k8s-discovery
+    keywords:
+    - kubernetes
+    - operator
+    - openapi
+    - scalar
+    - documentation
+    maintainers:
+    - email: kevin.ceresa@swisstilab.ch
+      name: Kevin C.
+    name: openapi-k8s-operator
+    sources:
+    - https://github.com/ch-vik/openapi-k8s-discovery
+    type: application
+    urls:
+    - https://ch-vik.github.io/openapi-k8s-discovery/openapi-k8s-operator-0.2.1-pre0.tgz
+    version: 0.2.1-pre0
+  - apiVersion: v2
     appVersion: 0.1.2
-    created: "2025-11-03T13:54:37.587683572Z"
+    created: "2026-02-20T15:14:34.163679338Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 7dd6f6364f671126bf13f43c36ee65038cb5b6862c31a6d2467d811cc58897b4
@@ -26,7 +49,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: 0.1.2
-    created: "2025-11-03T13:54:37.58702446Z"
+    created: "2026-02-20T15:14:34.163015326Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 573a93408b4105304ff39b5a2ce064bc4bb5dea9047730e06553fe6a1a88c3ed
@@ -49,7 +72,7 @@ entries:
     version: 0.2.0-pre0
   - apiVersion: v2
     appVersion: 0.1.2
-    created: "2025-11-03T13:54:37.586338568Z"
+    created: "2026-02-20T15:14:34.162339833Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: a7f885638dbc89fad0c2d4173a20173a5b9eca220c3b247d95d601821c2264f6
@@ -72,7 +95,7 @@ entries:
     version: 0.1.3
   - apiVersion: v2
     appVersion: 0.1.2
-    created: "2025-11-03T13:54:37.585134232Z"
+    created: "2026-02-20T15:14:34.16173937Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: ccd375ecdcda6edc0534ebfbafbafeeef6a368aa13e280a59f1dd17f8ba55f34
@@ -95,7 +118,7 @@ entries:
     version: 0.1.3-pre0
   - apiVersion: v2
     appVersion: 0.1.2
-    created: "2025-11-03T13:54:37.584365145Z"
+    created: "2026-02-20T15:14:34.160620931Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 8d6bb56d8d3a1a7e0a0af655bf9914f5339e5dc2d86101d6d6577ee966a80fc3
@@ -118,7 +141,7 @@ entries:
     version: 0.1.2
   - apiVersion: v2
     appVersion: 0.1.1
-    created: "2025-11-03T13:54:37.583753201Z"
+    created: "2026-02-20T15:14:34.159578854Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 84739c537078651d4bf271c9191e2ab2e371a28f08e0af37375d7c1c75be0d4c
@@ -141,7 +164,7 @@ entries:
     version: 0.1.0-pre20
   - apiVersion: v2
     appVersion: 0.1.0-pre19
-    created: "2025-11-03T13:54:37.583112414Z"
+    created: "2026-02-20T15:14:34.159005633Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: c02da615ae24cb1a5ebb8e9517aaa6723ec7d161784a5301011ff04bb02c1b26
@@ -164,7 +187,7 @@ entries:
     version: 0.1.0-pre19
   - apiVersion: v2
     appVersion: 0.1.0-pre18
-    created: "2025-11-03T13:54:37.582497234Z"
+    created: "2026-02-20T15:14:34.15841305Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 26b4886a5cae14b7ee0a296774a2402d7f3f22a5722324729fef167db630a4c0
@@ -187,7 +210,7 @@ entries:
     version: 0.1.0-pre18
   - apiVersion: v2
     appVersion: 0.1.0-pre12
-    created: "2025-11-03T13:54:37.581821051Z"
+    created: "2026-02-20T15:14:34.157767189Z"
     description: A Kubernetes operator for aggregating OpenAPI documentation from
       multiple services
     digest: 5fed5313d835c7009d759f5d2a2c921bf5cde94a65f6a947a24a1edd455b7705
@@ -208,4 +231,4 @@ entries:
     urls:
     - https://ch-vik.github.io/openapi-k8s-discovery/openapi-k8s-operator-0.1.0-pre12.tgz
     version: 0.1.0-pre12
-generated: "2025-11-03T13:54:37.576666218Z"
+generated: "2026-02-20T15:14:34.152104684Z"
