@@ -619,3 +619,60 @@ fn error_policy(
     warn!("Requeuing service {} in {:?}", name, requeue_delay);
     Action::requeue(requeue_delay)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+
+    fn make_entry(namespace: &str, service_name: &str) -> ApiDocEntry {
+        let id = entry_key!(namespace, service_name);
+        ApiDocEntry {
+            id: id.clone(),
+            name: format!("{} API", service_name),
+            namespace: namespace.to_string(),
+            service_name: service_name.to_string(),
+            url: format!(
+                "http://{}.{}.svc.cluster.local:8080/swagger/openapi.yml",
+                service_name, namespace
+            ),
+            description: None,
+            last_updated: Utc::now(),
+            available: true,
+            spec: "{}".to_string(),
+        }
+    }
+
+    #[test]
+    fn entry_key_format() {
+        assert_eq!(entry_key!("eng-main", "my-svc"), "eng-main-my-svc");
+        assert_eq!(entry_key!("default", "kubernetes"), "default-kubernetes");
+    }
+
+    #[test]
+    fn filter_removes_entry_by_key() {
+        let apis = vec![
+            make_entry("eng-main", "svc-a"),
+            make_entry("eng-main", "svc-b"),
+            make_entry("iot-main", "svc-c"),
+        ];
+        let key = entry_key!("eng-main", "svc-b");
+        let filtered: Vec<ApiDocEntry> = apis
+            .into_iter()
+            .filter(|api| entry_key!(&api.namespace, &api.service_name) != key)
+            .collect();
+        assert_eq!(filtered.len(), 2);
+        assert!(filtered.iter().all(|api| api.service_name != "svc-b"));
+    }
+
+    #[test]
+    fn filter_removes_last_entry() {
+        let apis = vec![make_entry("default", "only-one")];
+        let key = entry_key!("default", "only-one");
+        let filtered: Vec<ApiDocEntry> = apis
+            .into_iter()
+            .filter(|api| entry_key!(&api.namespace, &api.service_name) != key)
+            .collect();
+        assert_eq!(filtered.len(), 0);
+    }
+}
