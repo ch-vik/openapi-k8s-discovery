@@ -17,7 +17,7 @@ use openapi_common::{
     ApiDocEntry, DiscoveryConfig,
     API_DOC_ENABLED_ANNOTATION, API_DOC_PATH_ANNOTATION, API_DOC_NAME_ANNOTATION, API_DOC_DESCRIPTION_ANNOTATION,
     DEFAULT_API_DOC_PATH, DISCOVERY_NAMESPACE_ENV, DISCOVERY_CONFIGMAP_ENV,
-    spec_utils, namespace_utils
+    namespace_utils
 };
 
 /// Deterministic key for a discovery entry (namespace + service name). Used for dedup and removal.
@@ -246,23 +246,31 @@ async fn reconcile(
 
     let available = check_api_availability(&ctx.http_client, &url).await;
 
+    if !available {
+        warn!(
+            "Service {} unreachable (wrong name, network, or down), removing from discovery",
+            service_name
+        );
+        remove_entry_from_discovery_configmap(ctx.clone(), &namespace, &service_name).await?;
+        return Ok(Action::requeue(Duration::from_secs(300)));
+    }
+
     // Create a deterministic ID based on service name and namespace
     let entry_id = entry_key!(&namespace, &service_name);
-    
-    // Fetch the actual OpenAPI spec
-    let spec = if available {
-        match fetch_openapi_spec(&url).await {
-            Ok(spec) => {
-                info!("Successfully fetched OpenAPI spec for service: {}", service_name);
-                spec
-            }
-            Err(e) => {
-                warn!("Failed to fetch OpenAPI spec for service {}: {}", service_name, e);
-                spec_utils::create_default_spec(&api_name, "API documentation not available")
-            }
+
+    let spec = match fetch_openapi_spec(&url).await {
+        Ok(spec) => {
+            info!("Successfully fetched OpenAPI spec for service: {}", service_name);
+            spec
         }
-    } else {
-        spec_utils::create_default_spec(&api_name, "API documentation not available")
+        Err(e) => {
+            warn!(
+                "Failed to fetch OpenAPI spec for service {} (removing from discovery): {}",
+                service_name, e
+            );
+            remove_entry_from_discovery_configmap(ctx.clone(), &namespace, &service_name).await?;
+            return Ok(Action::requeue(Duration::from_secs(300)));
+        }
     };
 
     let entry = ApiDocEntry {
@@ -273,15 +281,15 @@ async fn reconcile(
         url,
         description,
         last_updated: Utc::now(),
-        available,
+        available: true,
         spec,
     };
 
     update_discovery_configmap(ctx, entry).await?;
 
     info!(
-        "Successfully reconciled service: {} (available: {})",
-        service_name, available
+        "Successfully reconciled service: {}",
+        service_name
     );
 
     Ok(Action::requeue(Duration::from_secs(300)))
