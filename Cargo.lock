@@ -1353,7 +1353,7 @@ dependencies = [
 
 [[package]]
 name = "openapi-k8s-operator"
-version = "0.2.1-pre0"
+version = "0.2.1-pre1"
 dependencies = [
  "chrono",
  "futures",
