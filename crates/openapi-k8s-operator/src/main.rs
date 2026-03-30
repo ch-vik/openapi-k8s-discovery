@@ -14,7 +14,7 @@ use tokio::time::sleep;
 
 use error::AppError;
 use openapi_common::{
-    ApiDocEntry, DiscoveryConfig,
+    ApiInventoryEntry, DiscoveryConfig,
     API_DOC_ENABLED_ANNOTATION, API_DOC_PATH_ANNOTATION, API_DOC_NAME_ANNOTATION, API_DOC_DESCRIPTION_ANNOTATION,
     DEFAULT_API_DOC_PATH, DISCOVERY_NAMESPACE_ENV, DISCOVERY_CONFIGMAP_ENV,
     namespace_utils
@@ -258,22 +258,7 @@ async fn reconcile(
     // Create a deterministic ID based on service name and namespace
     let entry_id = entry_key!(&namespace, &service_name);
 
-    let spec = match fetch_openapi_spec(&url).await {
-        Ok(spec) => {
-            info!("Successfully fetched OpenAPI spec for service: {}", service_name);
-            spec
-        }
-        Err(e) => {
-            warn!(
-                "Failed to fetch OpenAPI spec for service {} (removing from discovery): {}",
-                service_name, e
-            );
-            remove_entry_from_discovery_configmap(ctx.clone(), &namespace, &service_name).await?;
-            return Ok(Action::requeue(Duration::from_secs(300)));
-        }
-    };
-
-    let entry = ApiDocEntry {
+    let entry = ApiInventoryEntry {
         id: entry_id,
         name: api_name,
         namespace: namespace.clone(),
@@ -282,7 +267,6 @@ async fn reconcile(
         description,
         last_updated: Utc::now(),
         available: true,
-        spec,
     };
 
     update_discovery_configmap(ctx, entry).await?;
@@ -302,17 +286,6 @@ async fn check_api_availability(client: &reqwest::Client, url: &str) -> bool {
             warn!("Failed to check API availability for {}: {}", url, e);
             false
         }
-    }
-}
-
-async fn fetch_openapi_spec(url: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let client = reqwest::Client::new();
-    let response = client.get(url).send().await?;
-    
-    if response.status().is_success() {
-        Ok(response.text().await?)
-    } else {
-        Err(format!("HTTP error: {}", response.status()).into())
     }
 }
 
@@ -341,7 +314,7 @@ async fn remove_entry_from_discovery_configmap(
         .map(|c| c.apis)
         .unwrap_or_default();
 
-    let apis: Vec<ApiDocEntry> = apis
+    let apis: Vec<ApiInventoryEntry> = apis
         .into_iter()
         .filter(|api| entry_key!(&api.namespace, &api.service_name) != key)
         .collect();
@@ -382,7 +355,7 @@ async fn remove_entry_from_discovery_configmap(
     Ok(())
 }
 
-async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiDocEntry) -> Result<(), AppError> {
+async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEntry) -> Result<(), AppError> {
     const MAX_RETRIES: u32 = 5;
     const BASE_DELAY_MS: u64 = 100;
     
@@ -425,7 +398,7 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiDocEntry) -
         };
 
         // Deduplicate APIs and keep most recent entries
-        let mut unique_apis: std::collections::HashMap<String, ApiDocEntry> = std::collections::HashMap::new();
+        let mut unique_apis: std::collections::HashMap<String, ApiInventoryEntry> = std::collections::HashMap::new();
         for api in apis {
             let key = entry_key!(&api.namespace, &api.service_name);
             if let Some(existing) = unique_apis.get(&key) {
@@ -439,7 +412,7 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiDocEntry) -
 
         let key = entry_key!(&entry.namespace, &entry.service_name);
         unique_apis.insert(key, entry.clone());
-        let apis: Vec<ApiDocEntry> = unique_apis.into_values().collect();
+        let apis: Vec<ApiInventoryEntry> = unique_apis.into_values().collect();
 
         let discovery_config = DiscoveryConfig {
             apis,
@@ -633,9 +606,9 @@ mod tests {
     use super::*;
     use chrono::Utc;
 
-    fn make_entry(namespace: &str, service_name: &str) -> ApiDocEntry {
+    fn make_entry(namespace: &str, service_name: &str) -> ApiInventoryEntry {
         let id = entry_key!(namespace, service_name);
-        ApiDocEntry {
+        ApiInventoryEntry {
             id: id.clone(),
             name: format!("{} API", service_name),
             namespace: namespace.to_string(),
@@ -647,7 +620,6 @@ mod tests {
             description: None,
             last_updated: Utc::now(),
             available: true,
-            spec: "{}".to_string(),
         }
     }
 
@@ -665,7 +637,7 @@ mod tests {
             make_entry("iot-main", "svc-c"),
         ];
         let key = entry_key!("eng-main", "svc-b");
-        let filtered: Vec<ApiDocEntry> = apis
+        let filtered: Vec<ApiInventoryEntry> = apis
             .into_iter()
             .filter(|api| entry_key!(&api.namespace, &api.service_name) != key)
             .collect();
@@ -677,7 +649,7 @@ mod tests {
     fn filter_removes_last_entry() {
         let apis = vec![make_entry("default", "only-one")];
         let key = entry_key!("default", "only-one");
-        let filtered: Vec<ApiDocEntry> = apis
+        let filtered: Vec<ApiInventoryEntry> = apis
             .into_iter()
             .filter(|api| entry_key!(&api.namespace, &api.service_name) != key)
             .collect();
