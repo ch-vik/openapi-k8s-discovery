@@ -9,7 +9,7 @@ This directory contains a Docker Compose setup for testing the OpenAPI documenta
   - `product-service` (port 8082)
   - `order-service` (port 8083)
 
-- **Discovery Configuration**: A `discovery.json` file that lists all mock APIs
+- **Discovery configuration**: A `discovery.json` file listing the mock APIs
 
 - **Documentation Server**: The OpenAPI doc server with both Scalar and Redoc frontends enabled
 
@@ -106,7 +106,7 @@ REDOC_SHOW_API_SELECTOR=true
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CACHE_DIR` | `/tmp/openapi-cache` | Directory where API specs are cached as JSON files |
-| `DISCOVERY_PATH` | `/etc/config/discovery.json` | Path to the discovery.json file containing API metadata |
+| `DISCOVERY_PATH` | `/etc/config/discovery.json` | Path to `discovery.json` |
 
 **Note**: These paths are relative to the container's filesystem. In Docker Compose, mount volumes accordingly.
 
@@ -181,7 +181,7 @@ test/local/
 ├── README.md                  # This file
 ├── docker-compose.yml         # Docker Compose configuration
 ├── config/
-│   └── discovery.json         # API discovery configuration
+│   └── discovery.json         # API discovery list
 └── specs/
     ├── user-service.json      # User service OpenAPI spec
     ├── product-service.json   # Product service OpenAPI spec
@@ -298,7 +298,7 @@ When running locally, the server binds to `0.0.0.0:8080`, so you can access:
 The server works in the following way:
 
 1. **Discovery**: Reads `discovery.json` from `DISCOVERY_PATH` (default: `/etc/config/discovery.json`)
-2. **Fetching**: Periodically fetches OpenAPI specs from the URLs specified in discovery.json
+2. **Fetching**: Periodically fetches OpenAPI specs from each entry’s `url`
 3. **Caching**: Stores specs and metadata in `CACHE_DIR` as JSON files
 4. **Serving**: 
    - Serves specs via `/api/{api-name}` and `/specs/{api-name}` endpoints

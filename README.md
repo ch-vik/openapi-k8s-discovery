@@ -29,8 +29,8 @@ A production-ready Kubernetes operator written in Rust that automatically discov
 │                 │    │                  │    │                         │
 │ - Service A     │──▶│ - Watches        │──▶│ - Scalar UI (/scalar)   │
 │   (annotated)   │    │   Services       │    │ - Redoc UI (/redoc)     │
-│ - Service B     │    │ - Updates        │    │ - Multi-API Support     │
-│   (annotated)   │    │   ConfigMap      │    │ - File-Based Cache      │
+│ - Service B     │    │ - Writes         │    │ - Multi-API Support     │
+│   (annotated)   │    │   inventory CM   │    │ - Spec cache (URLs)     │
 └─────────────────┘    └──────────────────┘    └─────────────────────────┘
 ```
 
@@ -139,7 +139,7 @@ helm install openapi-operator openapi-k8s-discovery/openapi-k8s-discovery \
 | --------------------- | --------------------- | --------------------------------------------------------------------------- |
 | `WATCH_NAMESPACES`    | `""`                  | Namespaces to watch (`""` = current, `"all"` = all, `"ns1,ns2"` = specific) |
 | `DISCOVERY_NAMESPACE` | `"default"`           | Namespace where ConfigMap will be created                                   |
-| `DISCOVERY_CONFIGMAP` | `"openapi-discovery"` | Name of the discovery ConfigMap                                             |
+| `DISCOVERY_CONFIGMAP` | `"openapi-discovery"` | Name of the discovery ConfigMap |
 | `RUST_LOG`            | `"info"`              | Logging level                                                               |
 
 ##### Documentation Server Environment Variables
@@ -166,7 +166,7 @@ The documentation server supports multiple frontends and extensive configuration
 
 **Path Configuration:**
 - `CACHE_DIR`: Cache directory for API specs (default: `/tmp/openapi-cache`)
-- `DISCOVERY_PATH`: Path to discovery.json file (default: `/etc/config/discovery.json`)
+- `DISCOVERY_PATH`: Path to `discovery.json` (default: `/etc/config/discovery.json`)
 
 **Example Configuration:**
 ```yaml
@@ -403,13 +403,13 @@ curl http://localhost:3000/specs/{api-name}
 
 5. **Frontend not available**: Verify the frontend is enabled via `ENABLED_FRONTENDS` and compiled with the corresponding feature flag.
 
-6. **No APIs showing**: Check that the discovery.json file is being read correctly and APIs are being cached. Check logs for cache loading errors.
+6. **No APIs showing**: Check that `discovery.json` is readable and the doc server can reach the listed URLs. See cache refresh errors in logs.
 
 ## Local Testing
 
 For local development and testing, see the [`test/local/`](test/local/) directory for a complete Docker Compose setup with:
 - Mock API services serving OpenAPI specs
-- Pre-configured discovery.json
+- Pre-configured `discovery.json`
 - All environment variable examples
 - Step-by-step testing guide
 
