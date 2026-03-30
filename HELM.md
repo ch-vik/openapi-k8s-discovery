@@ -30,8 +30,8 @@ helm/openapi-k8s-operator/
 
 ### 1. Enhanced OpenAPI Server Integration
 
-- **Custom Discovery Server**: Built-in Rust/Axum server for OpenAPI documentation aggregation
-- **ConfigMap Integration**: Automatic mounting of discovery ConfigMap
+- **Custom discovery server**: Rust/Axum documentation server
+- **ConfigMap integration**: Mounts the discovery ConfigMap
 - **Flexible Networking**: Configurable service ports and ingress settings
 - **Resource Optimization**: Tunable CPU and memory limits for different environments
 - **Security Hardening**: Non-root execution with proper security contexts
@@ -59,8 +59,8 @@ helm/openapi-k8s-operator/
 
 ### 5. Optional OpenAPI Server
 
-- **Custom Server**: Deployable OpenAPI discovery server (Rust/Axum)
-- **ConfigMap Mount**: Automatically mounts discovery ConfigMap
+- **Custom server**: Deployable OpenAPI documentation server (Rust/Axum)
+- **ConfigMap mount**: Mounts `discovery.json` from the discovery ConfigMap
 - **Service & Ingress**: Full networking configuration with customizable ports
 - **Resource Management**: Configurable CPU and memory limits/requests
 - **Security Context**: Non-root execution with proper security settings

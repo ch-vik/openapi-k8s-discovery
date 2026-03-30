@@ -33,7 +33,7 @@ openapi-k8s-operator/
 
 ### `openapi-common`
 Shared library containing:
-- Common data structures (`ApiDocEntry`, `DiscoveryConfig`)
+- Common data structures (`ApiInventoryEntry`, `DiscoveryConfig`)
 - Utility functions for OpenAPI spec parsing
 - Namespace handling utilities
 - Constants and configuration
@@ -41,14 +41,14 @@ Shared library containing:
 ### `openapi-k8s-operator`
 Kubernetes operator that:
 - Watches for services with API documentation annotations
-- Fetches OpenAPI specs from discovered services
-- Updates a ConfigMap with aggregated API documentation
+- Verifies each annotated service is reachable
+- Updates a discovery ConfigMap (`discovery.json`)
 
 ### `openapi-doc-server`
 Web server that:
-- Serves a Scalar UI for API documentation
-- Reads API specs from the ConfigMap created by the operator
-- Provides a centralized interface for viewing multiple APIs
+- Serves Scalar/Redoc UIs
+- Reads mounted `discovery.json` and fetches specs into a local cache
+- Centralized view of multiple APIs
 
 ## Building
 
