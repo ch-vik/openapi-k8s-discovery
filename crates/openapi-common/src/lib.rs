@@ -15,9 +15,9 @@ pub const WATCH_NAMESPACES_ENV: &str = "WATCH_NAMESPACES";
 pub const DISCOVERY_NAMESPACE_ENV: &str = "DISCOVERY_NAMESPACE";
 pub const DISCOVERY_CONFIGMAP_ENV: &str = "DISCOVERY_CONFIGMAP";
 
-/// Represents an API documentation entry
+/// Service inventory entry for the discovery ConfigMap.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ApiDocEntry {
+pub struct ApiInventoryEntry {
     pub id: String,
     pub name: String,
     pub namespace: String,
@@ -26,13 +26,12 @@ pub struct ApiDocEntry {
     pub description: Option<String>,
     pub last_updated: DateTime<Utc>,
     pub available: bool,
-    pub spec: String, // The actual OpenAPI spec content
 }
 
 /// Configuration for API discovery
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiscoveryConfig {
-    pub apis: Vec<ApiDocEntry>,
+    pub apis: Vec<ApiInventoryEntry>,
     pub last_updated: DateTime<Utc>,
 }
 

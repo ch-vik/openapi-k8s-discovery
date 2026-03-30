@@ -21,24 +21,35 @@ use serde::{Deserialize, Serialize};
 
 use frontend::{ApiInfo, DocFrontend};
 
-// Server-specific types that handle string serialization for last_updated
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct ServerApiDocEntry {
+struct ServerApiInventoryEntry {
     id: String,
     name: String,
     namespace: String,
     service_name: String,
     url: String,
     description: Option<String>,
-    last_updated: String, // String version for server compatibility
+    last_updated: String,
     available: bool,
-    spec: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct ServerDiscoveryConfig {
-    apis: Vec<ServerApiDocEntry>,
-    last_updated: String, // String version for server compatibility
+    apis: Vec<ServerApiInventoryEntry>,
+    last_updated: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct CachedApiEntry {
+    id: String,
+    name: String,
+    namespace: String,
+    service_name: String,
+    url: String,
+    description: Option<String>,
+    last_updated: String,
+    available: bool,
+    spec: String,
 }
 
 /// Frontend manager that holds configured frontend instances
@@ -356,7 +367,7 @@ async fn handle_health() -> Result<Json<serde_json::Value>, StatusCode> {
     })))
 }
 
-async fn load_apis_from_cache(cache_dir: &StdPath) -> Vec<ServerApiDocEntry> {
+async fn load_apis_from_cache(cache_dir: &StdPath) -> Vec<CachedApiEntry> {
     let mut apis = Vec::new();
 
     if let Ok(entries) = fs::read_dir(cache_dir) {
@@ -366,7 +377,7 @@ async fn load_apis_from_cache(cache_dir: &StdPath) -> Vec<ServerApiDocEntry> {
                 let file_name_str = file_name.to_string_lossy();
                 if file_name_str.ends_with(".meta.json") {
                     if let Ok(content) = fs::read_to_string(&path) {
-                        match serde_json::from_str::<ServerApiDocEntry>(&content) {
+                        match serde_json::from_str::<CachedApiEntry>(&content) {
                             Ok(api) => {
                                 tracing::debug!("Loaded API from cache: {}", api.name);
                                 apis.push(api);
@@ -397,32 +408,33 @@ async fn refresh_api_cache(
         Ok(discovery_json) => {
             let discovery_config: ServerDiscoveryConfig = serde_json::from_str(&discovery_json)?;
 
-            // Clear old cache files (optional - you might want to keep them)
-            // For now, we'll just update/add new ones
-
-            for mut api in discovery_config.apis {
-                // Fetch the actual OpenAPI spec from the service URL
+            for api in discovery_config.apis {
                 match fetch_openapi_spec(&api.url).await {
                     Ok(spec) => {
                         tracing::info!("Successfully fetched OpenAPI spec for API: {}", api.name);
 
-                        // Save spec to file
                         let spec_path = get_spec_file_path(&state.cache_dir, &api.name);
                         fs::write(&spec_path, &spec)?;
 
-                        // Update API metadata
-                        api.available = true;
-                        api.spec = spec; // Keep spec in metadata for reference, but it's also in the file
+                        let meta = CachedApiEntry {
+                            id: api.id,
+                            name: api.name,
+                            namespace: api.namespace,
+                            service_name: api.service_name,
+                            url: api.url,
+                            description: api.description,
+                            last_updated: api.last_updated,
+                            available: true,
+                            spec,
+                        };
 
-                        // Save metadata to file
-                        let metadata_path = get_metadata_file_path(&state.cache_dir, &api.name);
-                        let api_json = serde_json::to_string(&api)?;
+                        let metadata_path = get_metadata_file_path(&state.cache_dir, &meta.name);
+                        let api_json = serde_json::to_string(&meta)?;
                         fs::write(&metadata_path, api_json)?;
                     }
                     Err(e) => {
                         tracing::warn!("Failed to fetch OpenAPI spec for API {}: {}", api.name, e);
 
-                        // Store a dummy spec for failed APIs
                         let default_spec = serde_json::json!({
                             "openapi": "3.0.0",
                             "info": {
@@ -434,16 +446,23 @@ async fn refresh_api_cache(
                         })
                         .to_string();
 
-                        // Save dummy spec to file
                         let spec_path = get_spec_file_path(&state.cache_dir, &api.name);
                         fs::write(&spec_path, &default_spec)?;
 
-                        api.available = false;
-                        api.spec = default_spec;
+                        let meta = CachedApiEntry {
+                            id: api.id,
+                            name: api.name.clone(),
+                            namespace: api.namespace,
+                            service_name: api.service_name,
+                            url: api.url,
+                            description: api.description,
+                            last_updated: api.last_updated,
+                            available: false,
+                            spec: default_spec,
+                        };
 
-                        // Save metadata to file
                         let metadata_path = get_metadata_file_path(&state.cache_dir, &api.name);
-                        let api_json = serde_json::to_string(&api)?;
+                        let api_json = serde_json::to_string(&meta)?;
                         fs::write(&metadata_path, api_json)?;
                     }
                 }
@@ -454,7 +473,7 @@ async fn refresh_api_cache(
             tracing::info!("Refreshed API cache with {} APIs", apis.len());
         }
         Err(e) => {
-            tracing::error!("Failed to read discovery ConfigMap: {}", e);
+            tracing::error!("Failed to read discovery.json: {}", e);
         }
     }
 

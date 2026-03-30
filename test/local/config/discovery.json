@@ -8,8 +8,7 @@
       "url": "http://user-service:8080/openapi.json",
       "description": "User management service API",
       "last_updated": "2024-01-15T10:00:00Z",
-      "available": true,
-      "spec": ""
+      "available": true
     },
     {
       "id": "test-api-2",
@@ -19,8 +18,7 @@
       "url": "http://product-service:8080/openapi.json",
       "description": "Product catalog service API",
       "last_updated": "2024-01-15T10:00:00Z",
-      "available": true,
-      "spec": ""
+      "available": true
     },
     {
       "id": "test-api-3",
@@ -30,8 +28,7 @@
       "url": "http://order-service:8080/openapi.json",
       "description": "Order processing service API",
       "last_updated": "2024-01-15T10:00:00Z",
-      "available": true,
-      "spec": ""
+      "available": true
     }
   ],
   "last_updated": "2024-01-15T10:00:00Z"
