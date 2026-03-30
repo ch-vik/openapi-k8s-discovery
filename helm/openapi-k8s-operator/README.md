@@ -1,6 +1,6 @@
 # OpenAPI K8s Operator Helm Chart
 
-This Helm chart deploys the OpenAPI K8s Operator, a Kubernetes operator that aggregates OpenAPI documentation from multiple services and presents them in a centralized Swagger UI.
+This Helm chart deploys the OpenAPI K8s Operator and optional documentation server (Scalar/Redoc UIs).
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ openapiServer:
   enabled: true
   image:
     repository: ghcr.io/ch-vik/openapi-k8s-discovery-server
-    tag: "0.2.0"
+    tag: "0.2.1-pre0"
     pullPolicy: IfNotPresent
   config:
     enabledFrontends: "scalar,redoc"
@@ -133,7 +133,7 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 |-----------|-------------|---------|
 | `openapiServer.enabled` | Enable OpenAPI server deployment | `true` |
 | `openapiServer.image.repository` | OpenAPI server image repository | `ghcr.io/ch-vik/openapi-k8s-discovery-server` |
-| `openapiServer.image.tag` | OpenAPI server image tag | `0.2.0` |
+| `openapiServer.image.tag` | OpenAPI server image tag | `0.2.1-pre0` |
 | `openapiServer.image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `openapiServer.deployment.replicaCount` | Number of replicas | `1` |
 | `openapiServer.service.type` | Service type | `ClusterIP` |
@@ -155,7 +155,7 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 | `openapiServer.config.enabledFrontends` | Comma-separated list of frontends to enable | `"scalar,redoc"` |
 | `openapiServer.config.defaultFrontend` | Default frontend at `/` (empty = first enabled) | `""` |
 | `openapiServer.config.cacheDir` | Directory for caching API specs | `"/tmp/openapi-cache"` |
-| `openapiServer.config.discoveryPath` | Path to discovery.json file | `"/etc/config/discovery.json"` |
+| `openapiServer.config.discoveryPath` | Path to mounted `discovery.json` | `"/etc/config/discovery.json"` |
 | `openapiServer.config.rustLog` | Logging level (trace, debug, info, warn, error) | `"info"` |
 
 #### Scalar Frontend Options
@@ -237,7 +237,7 @@ The OpenAPI server automatically receives the same configuration as the operator
 
 - **DISCOVERY_NAMESPACE**: Namespace where the discovery ConfigMap is located
 - **DISCOVERY_CONFIGMAP**: Name of the discovery ConfigMap to read from
-- **ConfigMap Mount**: The discovery ConfigMap is mounted at `/etc/config`
+- **ConfigMap mount**: Discovery ConfigMap mounted at `/etc/config` as `discovery.json`
 - **Custom Environment Variables**: Use `openapiServer.extraEnv` for additional configuration
 
 ## Usage
