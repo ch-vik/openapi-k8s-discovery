@@ -11,7 +11,12 @@ use kube::{
         watcher::Config,
     },
 };
-use std::{collections::BTreeMap, env, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, HashSet},
+    env,
+    sync::Arc,
+    time::Duration,
+};
 use tokio::time::sleep;
 use tracing::{error, info, warn};
 
@@ -24,6 +29,9 @@ use openapi_common::{
 
 /// Field manager for all writes to the discovery ConfigMap
 const FIELD_MANAGER: &str = "openapi-k8s-operator";
+
+/// How often discovery entries are checked against existing Services
+const PRUNE_INTERVAL: Duration = Duration::from_secs(60);
 
 /// Deterministic key for a discovery entry (namespace + service name). Used for dedup and removal.
 macro_rules! entry_key {
@@ -187,6 +195,18 @@ async fn main() -> Result<(), AppError> {
         return Err(e);
     }
 
+    // Periodically drop entries for deleted Services (runs once immediately at startup)
+    let prune_ctx = context.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(PRUNE_INTERVAL);
+        loop {
+            interval.tick().await;
+            if let Err(e) = prune_stale_entries(&prune_ctx).await {
+                error!("Failed to prune stale discovery entries: {}", e);
+            }
+        }
+    });
+
     let controller = Controller::new(services, Config::default().any_semantic())
         .run(reconcile, error_policy, context)
         .for_each(|res| async move {
@@ -309,30 +329,60 @@ async fn remove_entry_from_discovery_configmap(
     namespace: &str,
     service_name: &str,
 ) -> Result<(), AppError> {
-    let configmap_name = &ctx.discovery_configmap;
-    let configmap_namespace = &ctx.discovery_namespace;
     let key = entry_key!(namespace, service_name);
+    let removed = remove_entries_from_discovery_configmap(&ctx, |api| {
+        entry_key!(&api.namespace, &api.service_name) == key
+    })
+    .await?;
+    if removed > 0 {
+        info!(
+            "Removed service {}/{} from discovery ConfigMap",
+            namespace, service_name
+        );
+    }
+    Ok(())
+}
 
-    let discovery_api: Api<ConfigMap> =
-        Api::namespaced(ctx.discovery.clone().into_client(), configmap_namespace);
+/// Read the current discovery entries; empty if the ConfigMap is missing or unreadable.
+async fn read_discovery_entries(ctx: &ContextData) -> Vec<ApiInventoryEntry> {
+    let discovery_api: Api<ConfigMap> = Api::namespaced(
+        ctx.discovery.clone().into_client(),
+        &ctx.discovery_namespace,
+    );
 
-    let existing_configmap = match discovery_api.get_opt(configmap_name).await {
+    let existing_configmap = match discovery_api.get_opt(&ctx.discovery_configmap).await {
         Ok(Some(cm)) => cm,
-        Ok(None) | Err(_) => return Ok(()),
+        Ok(None) | Err(_) => return Vec::new(),
     };
 
-    let apis = existing_configmap
+    existing_configmap
         .data
         .as_ref()
         .and_then(|d| d.get("discovery.json"))
         .and_then(|j| serde_json::from_str::<DiscoveryConfig>(j).ok())
         .map(|c| c.apis)
-        .unwrap_or_default();
+        .unwrap_or_default()
+}
 
-    let apis: Vec<ApiInventoryEntry> = apis
-        .into_iter()
-        .filter(|api| entry_key!(&api.namespace, &api.service_name) != key)
-        .collect();
+/// Remove all entries matching `should_remove` from the discovery ConfigMap.
+/// Returns the number of removed entries; the ConfigMap is only written when something changed.
+async fn remove_entries_from_discovery_configmap(
+    ctx: &ContextData,
+    should_remove: impl Fn(&ApiInventoryEntry) -> bool,
+) -> Result<usize, AppError> {
+    let configmap_name = &ctx.discovery_configmap;
+    let configmap_namespace = &ctx.discovery_namespace;
+
+    let discovery_api: Api<ConfigMap> =
+        Api::namespaced(ctx.discovery.clone().into_client(), configmap_namespace);
+
+    let apis = read_discovery_entries(ctx).await;
+    let before = apis.len();
+    let apis: Vec<ApiInventoryEntry> = apis.into_iter().filter(|api| !should_remove(api)).collect();
+    let removed = before - apis.len();
+    if removed == 0 {
+        return Ok(0);
+    }
 
     let discovery_config = DiscoveryConfig {
         apis,
@@ -369,9 +419,50 @@ async fn remove_entry_from_discovery_configmap(
         .patch(configmap_name, &patch_params, &Patch::Apply(configmap))
         .await
         .map_err(AppError::Kube)?;
+    Ok(removed)
+}
+
+/// Remove entries whose Service no longer exists or no longer has API docs enabled.
+///
+/// The controller is never invoked for deleted Services, so without this deleted
+/// Services would stay in the discovery ConfigMap forever. Each entry is checked with
+/// a direct GET; any API error keeps the entry, so a flaky API server can't wipe it.
+async fn prune_stale_entries(ctx: &ContextData) -> Result<(), AppError> {
+    let client = ctx.discovery.clone().into_client();
+    let mut stale = HashSet::new();
+
+    for api in read_discovery_entries(ctx).await {
+        let services: Api<Service> = Api::namespaced(client.clone(), &api.namespace);
+        let is_stale = match services.get_opt(&api.service_name).await {
+            Ok(None) => true,
+            Ok(Some(service)) => service
+                .annotations()
+                .get(API_DOC_ENABLED_ANNOTATION)
+                .is_none_or(|v| v != "true"),
+            Err(e) => {
+                warn!(
+                    "Failed to check service {}/{} while pruning, keeping entry: {}",
+                    api.namespace, api.service_name, e
+                );
+                false
+            }
+        };
+        if is_stale {
+            stale.insert(entry_key!(&api.namespace, &api.service_name));
+        }
+    }
+
+    if stale.is_empty() {
+        return Ok(());
+    }
+
+    let removed = remove_entries_from_discovery_configmap(ctx, |api| {
+        stale.contains(&entry_key!(&api.namespace, &api.service_name))
+    })
+    .await?;
     info!(
-        "Removed service {}/{} from discovery ConfigMap",
-        namespace, service_name
+        "Pruned {} stale entries from discovery ConfigMap: {:?}",
+        removed, stale
     );
     Ok(())
 }
