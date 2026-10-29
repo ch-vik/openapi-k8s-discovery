@@ -89,8 +89,13 @@
     </div>
     {% endif %}
     <div id="redoc-container"></div>
-    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
-    <script>
+    <script type="module">
+      import { init } from 'https://cdn.redoc.ly/redoc/v3.x/bundles/redoc.standalone.js';
+
+      const options = {
+        sortRequiredPropsFirst: {{ required_props_first }}
+      };
+
       {% if has_multiple_apis %}
       const apis = {
         {% for api in apis %}
@@ -99,6 +104,7 @@
       };
 
       const STORAGE_KEY = 'redoc-selected-api';
+      let root = null;
 
       function loadApi(slug) {
         if (!apis[slug]) {
@@ -122,12 +128,14 @@
           // Ignore localStorage errors (e.g., in private mode)
         }
         
-        container.innerHTML = '';
-        Redoc.init(specUrl, {
-          expandResponses: '{{ expand_responses }}',
-          requiredPropsFirst: {{ required_props_first }}
-        }, container);
+        if (root) {
+          root.unmount();
+        }
+        root = init(specUrl, options, container);
       }
+
+      // Module scope is not global; expose for the selector's onchange handler
+      window.loadApi = loadApi;
 
       // Load API on page load - check localStorage first, then use first API
       (function() {
@@ -143,10 +151,7 @@
         loadApi(initialSlug);
       })();
       {% else %}
-      Redoc.init('{{ apis[0].spec_url }}', {
-        expandResponses: '{{ expand_responses }}',
-        requiredPropsFirst: {{ required_props_first }}
-      }, document.getElementById('redoc-container'));
+      init('{{ apis[0].spec_url }}', options, document.getElementById('redoc-container'));
       {% endif %}
     </script>
   </body>

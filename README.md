@@ -160,7 +160,6 @@ The documentation server supports multiple frontends and extensive configuration
 - `SCALAR_HIDE_DOWNLOAD_BUTTON`: Hide download button (default: `false`)
 
 **Redoc Frontend Options:**
-- `REDOC_EXPAND_RESPONSES`: Comma-separated response codes to expand (default: `200,201,400,401,403,404`)
 - `REDOC_REQUIRED_PROPS_FIRST`: Show required properties first (default: `true`)
 - `REDOC_SHOW_API_SELECTOR`: Show API selector dropdown (default: `true`)
 
@@ -180,8 +179,8 @@ env:
     value: "bluePlanet"
   - name: SCALAR_DARK_MODE
     value: "true"
-  - name: REDOC_EXPAND_RESPONSES
-    value: "200,201,400,500"
+  - name: REDOC_REQUIRED_PROPS_FIRST
+    value: "true"
   - name: CACHE_DIR
     value: "/var/cache/openapi"
 ```

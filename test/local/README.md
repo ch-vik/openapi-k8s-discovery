@@ -90,13 +90,11 @@ SCALAR_SHOW_SIDEBAR=true
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `REDOC_EXPAND_RESPONSES` | `200,201,400,401,403,404` | Comma-separated list of HTTP response codes to expand by default (e.g., `200,201,400,500`) |
 | `REDOC_REQUIRED_PROPS_FIRST` | `true` | Show required properties first in schema definitions. Set to `true` or `false` |
 | `REDOC_SHOW_API_SELECTOR` | `true` | Show the API selector dropdown when multiple APIs are available. Set to `true` or `false` |
 
 **Example Redoc Configuration:**
 ```bash
-REDOC_EXPAND_RESPONSES=200,201,400,500
 REDOC_REQUIRED_PROPS_FIRST=true
 REDOC_SHOW_API_SELECTOR=true
 ```
@@ -269,7 +267,7 @@ cargo build --bin openapi-doc-server --no-default-features --features redoc --re
    export DEFAULT_FRONTEND=scalar
    export SCALAR_THEME=purple
    export SCALAR_LAYOUT=modern
-   export REDOC_EXPAND_RESPONSES=200,201,400,401,403,404
+   export REDOC_REQUIRED_PROPS_FIRST=true
    export RUST_LOG=info
    ```
 

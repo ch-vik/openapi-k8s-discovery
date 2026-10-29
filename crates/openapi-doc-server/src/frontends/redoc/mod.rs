@@ -9,7 +9,6 @@ struct RedocMainTemplate {
     apis: Vec<RedocApiInfo>,
     has_multiple_apis: bool,
     show_api_selector: bool,
-    expand_responses: String,
     required_props_first: bool,
 }
 
@@ -56,7 +55,6 @@ impl DocFrontend for RedocFrontend {
             apis: redoc_apis,
             has_multiple_apis: apis.len() > 1,
             show_api_selector: self.config.show_api_selector && apis.len() > 1,
-            expand_responses: self.config.expand_responses.clone(),
             required_props_first: self.config.required_props_first,
         };
 

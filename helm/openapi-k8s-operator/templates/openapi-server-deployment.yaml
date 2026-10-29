@@ -89,8 +89,6 @@ spec:
         {{- end }}
         # Redoc frontend options
         {{- with .Values.openapiServer.config.redoc }}
-        - name: REDOC_EXPAND_RESPONSES
-          value: {{ .expandResponses | default "200,201,400,401,403,404" | quote }}
         - name: REDOC_REQUIRED_PROPS_FIRST
           value: {{ .requiredPropsFirst | default true | quote }}
         - name: REDOC_SHOW_API_SELECTOR

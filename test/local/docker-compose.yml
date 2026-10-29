@@ -80,7 +80,6 @@ services:
       - SCALAR_EXPAND_ALL_MODEL_SECTIONS=true
 
       # Redoc configuration
-      - REDOC_EXPAND_RESPONSES=200,201,400,401,403,404
       - REDOC_REQUIRED_PROPS_FIRST=true
       - REDOC_SHOW_API_SELECTOR=true
 

@@ -155,7 +155,6 @@ openapiServer:
     
     # Redoc frontend options
     redoc:
-      expandResponses: "200,201,400,401,403,404"  # Comma-separated response codes to expand
       requiredPropsFirst: true
       showApiSelector: true
     

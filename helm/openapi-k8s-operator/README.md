@@ -69,7 +69,7 @@ openapiServer:
       darkMode: true
       expandAllModelSections: false
     redoc:
-      expandResponses: "200,201,400,500"
+      requiredPropsFirst: true
       showApiSelector: true
   service:
     type: ClusterIP
@@ -174,7 +174,6 @@ helm install openapi-k8s-operator ./helm/openapi-k8s-operator -f custom-values.y
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `openapiServer.config.redoc.expandResponses` | Comma-separated response codes to expand | `"200,201,400,401,403,404"` |
 | `openapiServer.config.redoc.requiredPropsFirst` | Show required properties first | `true` |
 | `openapiServer.config.redoc.showApiSelector` | Show API selector dropdown | `true` |
 

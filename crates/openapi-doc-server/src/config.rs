@@ -67,8 +67,6 @@ impl Default for ScalarConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg(feature = "redoc")]
 pub struct RedocConfig {
-    #[serde(default = "default_expand_responses")]
-    pub expand_responses: String,
     #[serde(default = "default_true")]
     pub required_props_first: bool,
     #[serde(default = "default_api_selector")]
@@ -79,7 +77,6 @@ pub struct RedocConfig {
 impl Default for RedocConfig {
     fn default() -> Self {
         Self {
-            expand_responses: "200,201,400,401,403,404".to_string(),
             required_props_first: true,
             show_api_selector: true,
         }
@@ -101,11 +98,6 @@ fn default_true() -> bool {
 
 fn default_false() -> bool {
     false
-}
-
-#[allow(dead_code)]
-fn default_expand_responses() -> String {
-    "200,201,400,401,403,404".to_string()
 }
 
 #[allow(dead_code)]
@@ -204,9 +196,6 @@ impl RedocConfig {
 
         let mut config = Self::default();
 
-        if let Ok(expand_responses) = env::var("REDOC_EXPAND_RESPONSES") {
-            config.expand_responses = expand_responses;
-        }
         if let Ok(required_props) = env::var("REDOC_REQUIRED_PROPS_FIRST") {
             config.required_props_first = required_props.parse().unwrap_or(true);
         }
