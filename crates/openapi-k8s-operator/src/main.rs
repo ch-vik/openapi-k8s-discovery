@@ -458,7 +458,7 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEn
             }
             Err(e) => {
                 // Handle 409 conflicts with exponential backoff
-                if let kube::Error::Api(kube::core::ErrorResponse { code: 409, .. }) = e {
+                if matches!(&e, kube::Error::Api(status) if status.is_conflict()) {
                     warn!("ConfigMap conflict detected for '{}' in namespace '{}' (attempt {}/{}): {}", 
                           configmap_name, configmap_namespace, attempt, MAX_RETRIES, e);
                     
@@ -483,12 +483,11 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEn
 
     error!("Unexpected: reached end of retry loop for ConfigMap '{}' in namespace '{}'", 
            configmap_name, configmap_namespace);
-    Err(AppError::Kube(kube::Error::Api(kube::core::ErrorResponse {
-        status: "InternalServerError".to_string(),
-        message: "Unexpected retry loop completion".to_string(),
-        reason: "Unknown".to_string(),
-        code: 500,
-    })))
+    Err(AppError::Kube(kube::Error::Api(
+        kube::core::Status::failure("Unexpected retry loop completion", "Unknown")
+            .with_code(500)
+            .boxed(),
+    )))
 }
 
 async fn initialize_discovery_configmap(ctx: &ContextData) -> Result<(), AppError> {

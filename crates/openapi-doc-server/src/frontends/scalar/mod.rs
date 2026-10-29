@@ -1,7 +1,10 @@
 use crate::config::ScalarConfig;
 use crate::frontend::{ApiInfo, DocFrontend};
-use scalar_api_reference::scalar_html_default;
+use scalar_api_reference::scalar_html;
 use serde_json::json;
+
+/// Scalar bundle pinned to the major version, so upstream breaking releases don't leak in
+const SCALAR_JS_URL: &str = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1";
 
 pub struct ScalarFrontend {
     config: ScalarConfig,
@@ -39,7 +42,7 @@ impl DocFrontend for ScalarFrontend {
             configurations.push(config);
         }
 
-        scalar_html_default(&json!(configurations))
+        scalar_html(&json!(configurations), Some(SCALAR_JS_URL))
     }
 
     fn generate_empty_html(&self) -> String {
@@ -65,7 +68,7 @@ impl DocFrontend for ScalarFrontend {
             "expandAllModelSections": self.config.expand_all_model_sections
         }]);
 
-        scalar_html_default(&json!(configuration))
+        scalar_html(&json!(configuration), Some(SCALAR_JS_URL))
     }
 }
 
