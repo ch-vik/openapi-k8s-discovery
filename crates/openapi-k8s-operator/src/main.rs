@@ -5,7 +5,7 @@ use futures::StreamExt;
 use k8s_openapi::api::core::v1::{ConfigMap, Service};
 use kube::{
     Client, ResourceExt,
-    api::{Api, Patch, PatchParams},
+    api::{Api, Patch, PatchParams, PostParams},
     runtime::{
         controller::{Action, Controller},
         watcher::Config,
@@ -21,6 +21,9 @@ use openapi_common::{
     API_DOC_PATH_ANNOTATION, ApiInventoryEntry, DEFAULT_API_DOC_PATH, DISCOVERY_CONFIGMAP_ENV,
     DISCOVERY_NAMESPACE_ENV, DiscoveryConfig, namespace_utils,
 };
+
+/// Field manager for all writes to the discovery ConfigMap
+const FIELD_MANAGER: &str = "openapi-k8s-operator";
 
 /// Deterministic key for a discovery entry (namespace + service name). Used for dedup and removal.
 macro_rules! entry_key {
@@ -361,7 +364,7 @@ async fn remove_entry_from_discovery_configmap(
         ..Default::default()
     };
 
-    let patch_params = PatchParams::apply("openapi-k8s-operator");
+    let patch_params = PatchParams::apply(FIELD_MANAGER).force();
     discovery_api
         .patch(configmap_name, &patch_params, &Patch::Apply(configmap))
         .await
@@ -478,7 +481,7 @@ async fn update_discovery_configmap(
             ..Default::default()
         };
 
-        let patch_params = PatchParams::apply("openapi-k8s-operator");
+        let patch_params = PatchParams::apply(FIELD_MANAGER).force();
         match discovery_api
             .patch(configmap_name, &patch_params, &Patch::Apply(configmap))
             .await
@@ -602,8 +605,12 @@ async fn initialize_discovery_configmap(ctx: &ContextData) -> Result<(), AppErro
         ..Default::default()
     };
 
-    // Create the ConfigMap
-    match discovery_api.create(&Default::default(), &configmap).await {
+    // Create the ConfigMap under our field manager so later applies own its fields
+    let post_params = PostParams {
+        field_manager: Some(FIELD_MANAGER.to_string()),
+        ..Default::default()
+    };
+    match discovery_api.create(&post_params, &configmap).await {
         Ok(_) => {
             info!(
                 "Successfully created initial discovery ConfigMap '{}' in namespace '{}'",
