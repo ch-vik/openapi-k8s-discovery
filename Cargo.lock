@@ -1561,7 +1561,7 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
 name = "openapi-common"
-version = "0.3.0-pre0"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "serde",
@@ -1571,7 +1571,7 @@ dependencies = [
 
 [[package]]
 name = "openapi-doc-server"
-version = "0.3.0-pre0"
+version = "0.3.0"
 dependencies = [
  "askama",
  "axum",
@@ -1591,7 +1591,7 @@ dependencies = [
 
 [[package]]
 name = "openapi-k8s-operator"
-version = "0.3.0-pre0"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "futures",
