@@ -17,7 +17,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use tokio::time::sleep;
+use tokio::{sync::Mutex, time::sleep};
 use tracing::{error, info, warn};
 
 use error::AppError;
@@ -47,6 +47,9 @@ struct ContextData {
     watch_namespaces: Vec<String>,
     discovery_namespace: String,
     discovery_configmap: String,
+    /// Serializes read-modify-write of the discovery ConfigMap; concurrent reconciles
+    /// would otherwise overwrite each other's entries (last write wins)
+    configmap_lock: Arc<Mutex<()>>,
 }
 
 #[tokio::main]
@@ -187,6 +190,7 @@ async fn main() -> Result<(), AppError> {
         watch_namespaces,
         discovery_namespace,
         discovery_configmap,
+        configmap_lock: Arc::new(Mutex::new(())),
     });
 
     // Initialize the ConfigMap if it doesn't exist
@@ -372,6 +376,7 @@ async fn remove_entries_from_discovery_configmap(
 ) -> Result<usize, AppError> {
     let configmap_name = &ctx.discovery_configmap;
     let configmap_namespace = &ctx.discovery_namespace;
+    let _guard = ctx.configmap_lock.lock().await;
 
     let discovery_api: Api<ConfigMap> =
         Api::namespaced(ctx.discovery.clone().into_client(), configmap_namespace);
@@ -476,6 +481,7 @@ async fn update_discovery_configmap(
 
     let configmap_name = &ctx.discovery_configmap;
     let configmap_namespace = &ctx.discovery_namespace;
+    let _guard = ctx.configmap_lock.lock().await;
 
     for attempt in 1..=MAX_RETRIES {
         let discovery_api: Api<ConfigMap> =
