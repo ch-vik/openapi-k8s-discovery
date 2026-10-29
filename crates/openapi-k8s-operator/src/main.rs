@@ -6,18 +6,20 @@ use k8s_openapi::api::core::v1::{ConfigMap, Service};
 use kube::{
     Client, ResourceExt,
     api::{Api, Patch, PatchParams},
-    runtime::{controller::{Action, Controller}, watcher::Config},
+    runtime::{
+        controller::{Action, Controller},
+        watcher::Config,
+    },
 };
 use std::{collections::BTreeMap, env, sync::Arc, time::Duration};
-use tracing::{error, info, warn};
 use tokio::time::sleep;
+use tracing::{error, info, warn};
 
 use error::AppError;
 use openapi_common::{
-    ApiInventoryEntry, DiscoveryConfig,
-    API_DOC_ENABLED_ANNOTATION, API_DOC_PATH_ANNOTATION, API_DOC_NAME_ANNOTATION, API_DOC_DESCRIPTION_ANNOTATION,
-    DEFAULT_API_DOC_PATH, DISCOVERY_NAMESPACE_ENV, DISCOVERY_CONFIGMAP_ENV,
-    namespace_utils
+    API_DOC_DESCRIPTION_ANNOTATION, API_DOC_ENABLED_ANNOTATION, API_DOC_NAME_ANNOTATION,
+    API_DOC_PATH_ANNOTATION, ApiInventoryEntry, DEFAULT_API_DOC_PATH, DISCOVERY_CONFIGMAP_ENV,
+    DISCOVERY_NAMESPACE_ENV, DiscoveryConfig, namespace_utils,
 };
 
 /// Deterministic key for a discovery entry (namespace + service name). Used for dedup and removal.
@@ -53,7 +55,8 @@ async fn main() -> Result<(), AppError> {
         Some(namespaces) => {
             if namespaces.contains(&"current".to_string()) {
                 // Watch current namespace only
-                let current_namespace = env::var("POD_NAMESPACE").unwrap_or_else(|_| "default".to_string());
+                let current_namespace =
+                    env::var("POD_NAMESPACE").unwrap_or_else(|_| "default".to_string());
                 info!("Watching current namespace: {}", current_namespace);
                 vec![current_namespace]
             } else {
@@ -66,7 +69,7 @@ async fn main() -> Result<(), AppError> {
             vec!["all".to_string()]
         }
     };
-    
+
     let discovery_namespace =
         env::var(DISCOVERY_NAMESPACE_ENV).unwrap_or_else(|_| "default".to_string());
     let discovery_configmap =
@@ -80,7 +83,7 @@ async fn main() -> Result<(), AppError> {
             "DISCOVERY_NAMESPACE cannot be empty",
         )));
     }
-    
+
     if discovery_configmap.is_empty() {
         error!("DISCOVERY_CONFIGMAP cannot be empty");
         return Err(AppError::Io(std::io::Error::new(
@@ -90,16 +93,25 @@ async fn main() -> Result<(), AppError> {
     }
 
     // Validate discovery namespace name follows Kubernetes naming rules
-    if !discovery_namespace.chars().all(|c| c.is_alphanumeric() || c == '-') {
-        error!("Invalid DISCOVERY_NAMESPACE: '{}' contains invalid characters", discovery_namespace);
+    if !discovery_namespace
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-')
+    {
+        error!(
+            "Invalid DISCOVERY_NAMESPACE: '{}' contains invalid characters",
+            discovery_namespace
+        );
         return Err(AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             format!("Invalid discovery namespace name: {}", discovery_namespace),
         )));
     }
-    
+
     if discovery_namespace.len() > 63 {
-        error!("Invalid DISCOVERY_NAMESPACE: '{}' exceeds 63 characters", discovery_namespace);
+        error!(
+            "Invalid DISCOVERY_NAMESPACE: '{}' exceeds 63 characters",
+            discovery_namespace
+        );
         return Err(AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             format!("Discovery namespace name too long: {}", discovery_namespace),
@@ -107,16 +119,25 @@ async fn main() -> Result<(), AppError> {
     }
 
     // Validate discovery configmap name follows Kubernetes naming rules
-    if !discovery_configmap.chars().all(|c| c.is_alphanumeric() || c == '-') {
-        error!("Invalid DISCOVERY_CONFIGMAP: '{}' contains invalid characters", discovery_configmap);
+    if !discovery_configmap
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-')
+    {
+        error!(
+            "Invalid DISCOVERY_CONFIGMAP: '{}' contains invalid characters",
+            discovery_configmap
+        );
         return Err(AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             format!("Invalid discovery configmap name: {}", discovery_configmap),
         )));
     }
-    
+
     if discovery_configmap.len() > 63 {
-        error!("Invalid DISCOVERY_CONFIGMAP: '{}' exceeds 63 characters", discovery_configmap);
+        error!(
+            "Invalid DISCOVERY_CONFIGMAP: '{}' exceeds 63 characters",
+            discovery_configmap
+        );
         return Err(AppError::Io(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
             format!("Discovery configmap name too long: {}", discovery_configmap),
@@ -128,8 +149,7 @@ async fn main() -> Result<(), AppError> {
     info!("Discovery ConfigMap: {}", discovery_configmap);
 
     let services = if watch_namespaces.is_empty() {
-        let current_namespace =
-            env::var("POD_NAMESPACE").unwrap_or_else(|_| "default".to_string());
+        let current_namespace = env::var("POD_NAMESPACE").unwrap_or_else(|_| "default".to_string());
         info!("Watching current namespace: {}", current_namespace);
         Api::namespaced(client.clone(), &current_namespace)
     } else if watch_namespaces.len() == 1 && watch_namespaces[0] == "all" {
@@ -144,8 +164,7 @@ async fn main() -> Result<(), AppError> {
         Api::all(client.clone())
     };
 
-    let discovery: Api<ConfigMap> =
-        Api::namespaced(client.clone(), &discovery_namespace);
+    let discovery: Api<ConfigMap> = Api::namespaced(client.clone(), &discovery_namespace);
 
     let http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
@@ -180,11 +199,7 @@ async fn main() -> Result<(), AppError> {
     Ok(())
 }
 
-
-async fn reconcile(
-    service: Arc<Service>,
-    ctx: Arc<ContextData>,
-) -> Result<Action, AppError> {
+async fn reconcile(service: Arc<Service>, ctx: Arc<ContextData>) -> Result<Action, AppError> {
     let service_name = service.name_any();
     let namespace = service.namespace().unwrap_or_default();
 
@@ -271,10 +286,7 @@ async fn reconcile(
 
     update_discovery_configmap(ctx, entry).await?;
 
-    info!(
-        "Successfully reconciled service: {}",
-        service_name
-    );
+    info!("Successfully reconciled service: {}", service_name);
 
     Ok(Action::requeue(Duration::from_secs(300)))
 }
@@ -323,16 +335,22 @@ async fn remove_entry_from_discovery_configmap(
         apis,
         last_updated: Utc::now(),
     };
-    let discovery_json = serde_json::to_string_pretty(&discovery_config)
-        .map_err(|e| AppError::Serde(e))?;
+    let discovery_json =
+        serde_json::to_string_pretty(&discovery_config).map_err(AppError::Serde)?;
 
     let configmap = ConfigMap {
         metadata: kube::core::ObjectMeta {
             name: Some(configmap_name.to_string()),
             namespace: Some(configmap_namespace.to_string()),
             labels: Some(BTreeMap::from([
-                ("app.kubernetes.io/name".to_string(), "openapi-discovery".to_string()),
-                ("app.kubernetes.io/component".to_string(), "discovery".to_string()),
+                (
+                    "app.kubernetes.io/name".to_string(),
+                    "openapi-discovery".to_string(),
+                ),
+                (
+                    "app.kubernetes.io/component".to_string(),
+                    "discovery".to_string(),
+                ),
             ])),
             ..Default::default()
         },
@@ -355,10 +373,13 @@ async fn remove_entry_from_discovery_configmap(
     Ok(())
 }
 
-async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEntry) -> Result<(), AppError> {
+async fn update_discovery_configmap(
+    ctx: Arc<ContextData>,
+    entry: ApiInventoryEntry,
+) -> Result<(), AppError> {
     const MAX_RETRIES: u32 = 5;
     const BASE_DELAY_MS: u64 = 100;
-    
+
     let configmap_name = &ctx.discovery_configmap;
     let configmap_namespace = &ctx.discovery_namespace;
 
@@ -370,8 +391,10 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEn
             Ok(Some(configmap)) => Some(configmap),
             Ok(None) => None,
             Err(e) => {
-                error!("Failed to get ConfigMap '{}' in namespace '{}' (attempt {}/{}): {}", 
-                       configmap_name, configmap_namespace, attempt, MAX_RETRIES, e);
+                error!(
+                    "Failed to get ConfigMap '{}' in namespace '{}' (attempt {}/{}): {}",
+                    configmap_name, configmap_namespace, attempt, MAX_RETRIES, e
+                );
                 if attempt == MAX_RETRIES {
                     return Err(AppError::Kube(e));
                 }
@@ -398,7 +421,8 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEn
         };
 
         // Deduplicate APIs and keep most recent entries
-        let mut unique_apis: std::collections::HashMap<String, ApiInventoryEntry> = std::collections::HashMap::new();
+        let mut unique_apis: std::collections::HashMap<String, ApiInventoryEntry> =
+            std::collections::HashMap::new();
         for api in apis {
             let key = entry_key!(&api.namespace, &api.service_name);
             if let Some(existing) = unique_apis.get(&key) {
@@ -423,9 +447,13 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEn
             error!("Failed to serialize discovery config to JSON: {}", e);
             AppError::Serde(e)
         })?;
-        
-        info!("Serialized discovery config with {} APIs (attempt {}/{})", 
-              discovery_config.apis.len(), attempt, MAX_RETRIES);
+
+        info!(
+            "Serialized discovery config with {} APIs (attempt {}/{})",
+            discovery_config.apis.len(),
+            attempt,
+            MAX_RETRIES
+        );
 
         let configmap = ConfigMap {
             metadata: kube::core::ObjectMeta {
@@ -443,46 +471,62 @@ async fn update_discovery_configmap(ctx: Arc<ContextData>, entry: ApiInventoryEn
                 ])),
                 ..Default::default()
             },
-            data: Some(BTreeMap::from([
-                ("discovery.json".to_string(), discovery_json),
-            ])),
+            data: Some(BTreeMap::from([(
+                "discovery.json".to_string(),
+                discovery_json,
+            )])),
             ..Default::default()
         };
 
         let patch_params = PatchParams::apply("openapi-k8s-operator");
-        match discovery_api.patch(configmap_name, &patch_params, &Patch::Apply(configmap)).await {
+        match discovery_api
+            .patch(configmap_name, &patch_params, &Patch::Apply(configmap))
+            .await
+        {
             Ok(_) => {
-                info!("Successfully updated ConfigMap '{}' in namespace '{}' with {} unique APIs", 
-                      configmap_name, configmap_namespace, discovery_config.apis.len());
+                info!(
+                    "Successfully updated ConfigMap '{}' in namespace '{}' with {} unique APIs",
+                    configmap_name,
+                    configmap_namespace,
+                    discovery_config.apis.len()
+                );
                 return Ok(());
             }
             Err(e) => {
                 // Handle 409 conflicts with exponential backoff
                 if matches!(&e, kube::Error::Api(status) if status.is_conflict()) {
-                    warn!("ConfigMap conflict detected for '{}' in namespace '{}' (attempt {}/{}): {}", 
-                          configmap_name, configmap_namespace, attempt, MAX_RETRIES, e);
-                    
+                    warn!(
+                        "ConfigMap conflict detected for '{}' in namespace '{}' (attempt {}/{}): {}",
+                        configmap_name, configmap_namespace, attempt, MAX_RETRIES, e
+                    );
+
                     if attempt == MAX_RETRIES {
-                        error!("Max retries reached for ConfigMap '{}' in namespace '{}': {}", 
-                               configmap_name, configmap_namespace, e);
+                        error!(
+                            "Max retries reached for ConfigMap '{}' in namespace '{}': {}",
+                            configmap_name, configmap_namespace, e
+                        );
                         return Err(AppError::Kube(e));
                     }
-                    
+
                     let delay = Duration::from_millis(BASE_DELAY_MS * 2_u64.pow(attempt - 1));
                     warn!("Retrying ConfigMap update in {:?}...", delay);
                     sleep(delay).await;
                     continue;
                 } else {
-                    error!("Failed to update ConfigMap '{}' in namespace '{}': {}", 
-                           configmap_name, configmap_namespace, e);
+                    error!(
+                        "Failed to update ConfigMap '{}' in namespace '{}': {}",
+                        configmap_name, configmap_namespace, e
+                    );
                     return Err(AppError::Kube(e));
                 }
             }
         }
     }
 
-    error!("Unexpected: reached end of retry loop for ConfigMap '{}' in namespace '{}'", 
-           configmap_name, configmap_namespace);
+    error!(
+        "Unexpected: reached end of retry loop for ConfigMap '{}' in namespace '{}'",
+        configmap_name, configmap_namespace
+    );
     Err(AppError::Kube(kube::Error::Api(
         kube::core::Status::failure("Unexpected retry loop completion", "Unknown")
             .with_code(500)
@@ -500,14 +544,23 @@ async fn initialize_discovery_configmap(ctx: &ContextData) -> Result<(), AppErro
     // Check if ConfigMap already exists
     match discovery_api.get_opt(configmap_name).await {
         Ok(Some(_)) => {
-            info!("Discovery ConfigMap '{}' already exists in namespace '{}'", configmap_name, configmap_namespace);
+            info!(
+                "Discovery ConfigMap '{}' already exists in namespace '{}'",
+                configmap_name, configmap_namespace
+            );
             return Ok(());
         }
         Ok(None) => {
-            info!("Discovery ConfigMap '{}' does not exist, creating it", configmap_name);
+            info!(
+                "Discovery ConfigMap '{}' does not exist, creating it",
+                configmap_name
+            );
         }
         Err(e) => {
-            error!("Failed to check if ConfigMap '{}' exists in namespace '{}': {}", configmap_name, configmap_namespace, e);
+            error!(
+                "Failed to check if ConfigMap '{}' exists in namespace '{}': {}",
+                configmap_name, configmap_namespace, e
+            );
             return Err(AppError::Kube(e));
         }
     }
@@ -519,7 +572,10 @@ async fn initialize_discovery_configmap(ctx: &ContextData) -> Result<(), AppErro
     };
 
     let discovery_json = serde_json::to_string_pretty(&discovery_config).map_err(|e| {
-        error!("Failed to serialize initial discovery config to JSON: {}", e);
+        error!(
+            "Failed to serialize initial discovery config to JSON: {}",
+            e
+        );
         AppError::Serde(e)
     })?;
 
@@ -539,19 +595,26 @@ async fn initialize_discovery_configmap(ctx: &ContextData) -> Result<(), AppErro
             ])),
             ..Default::default()
         },
-        data: Some(BTreeMap::from([
-            ("discovery.json".to_string(), discovery_json),
-        ])),
+        data: Some(BTreeMap::from([(
+            "discovery.json".to_string(),
+            discovery_json,
+        )])),
         ..Default::default()
     };
 
     // Create the ConfigMap
     match discovery_api.create(&Default::default(), &configmap).await {
         Ok(_) => {
-            info!("Successfully created initial discovery ConfigMap '{}' in namespace '{}'", configmap_name, configmap_namespace);
+            info!(
+                "Successfully created initial discovery ConfigMap '{}' in namespace '{}'",
+                configmap_name, configmap_namespace
+            );
         }
         Err(e) => {
-            error!("Failed to create discovery ConfigMap '{}' in namespace '{}': {}", configmap_name, configmap_namespace, e);
+            error!(
+                "Failed to create discovery ConfigMap '{}' in namespace '{}': {}",
+                configmap_name, configmap_namespace, e
+            );
             return Err(AppError::Kube(e));
         }
     }
@@ -559,41 +622,31 @@ async fn initialize_discovery_configmap(ctx: &ContextData) -> Result<(), AppErro
     Ok(())
 }
 
-fn error_policy(
-    service: Arc<Service>,
-    err: &AppError,
-    ctx: Arc<ContextData>,
-) -> Action {
+fn error_policy(service: Arc<Service>, err: &AppError, ctx: Arc<ContextData>) -> Action {
     let namespace = service.namespace().unwrap_or_default();
     let name = service.name_any();
 
-    if let AppError::Kube(kube_err) = err {
-        if let kube::Error::Api(resp) = kube_err {
-            if resp.code == 404 {
-                info!(
-                    "Service {}/{} not found (deleted), removing from discovery",
-                    namespace, name
-                );
-                let ctx_clone = ctx.clone();
-                let ns = namespace.clone();
-                let name_clone = name.clone();
-                tokio::spawn(async move {
-                    if let Err(e) =
-                        remove_entry_from_discovery_configmap(ctx_clone, &ns, &name_clone).await
-                    {
-                        error!("Failed to remove deleted service from discovery: {}", e);
-                    }
-                });
-                return Action::requeue(Duration::from_secs(300));
+    if let AppError::Kube(kube_err) = err
+        && let kube::Error::Api(resp) = kube_err
+        && resp.code == 404
+    {
+        info!(
+            "Service {}/{} not found (deleted), removing from discovery",
+            namespace, name
+        );
+        let ctx_clone = ctx.clone();
+        let ns = namespace.clone();
+        let name_clone = name.clone();
+        tokio::spawn(async move {
+            if let Err(e) = remove_entry_from_discovery_configmap(ctx_clone, &ns, &name_clone).await
+            {
+                error!("Failed to remove deleted service from discovery: {}", e);
             }
-        }
+        });
+        return Action::requeue(Duration::from_secs(300));
     }
 
-    error!(
-        "Reconcile error for service {}: {}",
-        name,
-        err
-    );
+    error!("Reconcile error for service {}: {}", name, err);
 
     let requeue_delay = Duration::from_secs(30);
     warn!("Requeuing service {} in {:?}", name, requeue_delay);

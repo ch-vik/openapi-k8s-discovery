@@ -84,11 +84,11 @@ impl FrontendManager {
         if frontends.is_empty() {
             #[cfg(feature = "scalar")]
             {
-                if let Some(frontend_type) = FrontendType::from_str("scalar") {
-                    if let Some(frontend) = frontend_type.create_frontend(None) {
-                        frontends.insert("scalar".to_string(), Arc::from(frontend));
-                        tracing::info!("Auto-enabled scalar frontend (default)");
-                    }
+                if let Some(frontend_type) = FrontendType::from_str("scalar")
+                    && let Some(frontend) = frontend_type.create_frontend(None)
+                {
+                    frontends.insert("scalar".to_string(), Arc::from(frontend));
+                    tracing::info!("Auto-enabled scalar frontend (default)");
                 }
             }
             #[cfg(all(not(feature = "scalar"), feature = "redoc"))]

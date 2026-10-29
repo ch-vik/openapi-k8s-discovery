@@ -2,7 +2,7 @@
 pub trait DocFrontend: Send + Sync {
     /// Generate HTML for the documentation page with multiple APIs
     fn generate_html(&self, apis: &[ApiInfo]) -> String;
-    
+
     /// Generate HTML for empty state (no APIs found)
     fn generate_empty_html(&self) -> String;
 }
@@ -39,7 +39,9 @@ impl FrontendType {
                         Some(FrontendOptions::Scalar(config)) => config.clone(),
                         _ => crate::config::ScalarConfig::default(),
                     };
-                    Some(Box::new(crate::frontends::scalar::ScalarFrontend::new(config)))
+                    Some(Box::new(crate::frontends::scalar::ScalarFrontend::new(
+                        config,
+                    )))
                 }
                 #[cfg(not(feature = "scalar"))]
                 {
@@ -54,7 +56,9 @@ impl FrontendType {
                         Some(FrontendOptions::Redoc(config)) => config.clone(),
                         _ => crate::config::RedocConfig::default(),
                     };
-                    Some(Box::new(crate::frontends::redoc::RedocFrontend::new(config)))
+                    Some(Box::new(crate::frontends::redoc::RedocFrontend::new(
+                        config,
+                    )))
                 }
                 #[cfg(not(feature = "redoc"))]
                 {
@@ -82,4 +86,3 @@ impl FrontendType {
         }
     }
 }
-

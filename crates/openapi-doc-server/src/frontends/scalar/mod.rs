@@ -71,4 +71,3 @@ impl DocFrontend for ScalarFrontend {
         scalar_html(&json!(configuration), Some(SCALAR_JS_URL))
     }
 }
-

@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Main frontend configuration
-/// 
+///
 /// Configuration is loaded from environment variables:
 /// - `ENABLED_FRONTENDS`: Comma-separated list of frontends to enable (e.g., "scalar,redoc")
 /// - `DEFAULT_FRONTEND`: Default frontend to show at `/` (e.g., "scalar" or "redoc")
 /// - `CACHE_DIR`: Directory for caching API specs (default: "/tmp/openapi-cache")
 /// - `DISCOVERY_PATH`: Path to discovery.json file (default: "/etc/config/discovery.json")
-/// 
+///
 /// Frontend-specific options use prefixes:
 /// - Scalar: `SCALAR_*`
 /// - Redoc: `REDOC_*`
@@ -122,9 +122,7 @@ impl FrontendConfig {
             .collect();
 
         // Get default frontend
-        let default_frontend = env::var("DEFAULT_FRONTEND")
-            .ok()
-            .map(|s| s.to_lowercase());
+        let default_frontend = env::var("DEFAULT_FRONTEND").ok().map(|s| s.to_lowercase());
 
         // Build frontend options map
         let mut frontend_options = HashMap::new();
@@ -206,4 +204,3 @@ impl RedocConfig {
         config
     }
 }
-

@@ -49,11 +49,14 @@ pub mod spec_utils {
                 "description": description
             },
             "paths": {}
-        }).to_string()
+        })
+        .to_string()
     }
 
     /// Parses OpenAPI spec content (JSON or YAML) and returns JSON
-    pub fn parse_spec_to_json(spec_content: &str) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn parse_spec_to_json(
+        spec_content: &str,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
         if spec_content.trim().starts_with('{') {
             // Already JSON
             Ok(serde_json::from_str(spec_content)?)
@@ -82,7 +85,7 @@ pub mod namespace_utils {
                     .split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| !s.is_empty())
-                    .collect()
+                    .collect(),
             ),
             Err(_) => Some(vec!["current".to_string()]),
         }
